@@ -8,6 +8,8 @@ QT += widgets
 
 CONFIG += staticlib
 
+QMAKE_CXXFLAGS += -std=c++11
+
 # Input
 HEADERS += \
 ../include/CQXml.h \
@@ -24,4 +26,5 @@ INCLUDEPATH += \
 ../include \
 ../../CQStyleWidget/include \
 ../../CXML/include \
+../../CStrUtil/include \
 ../../CUtil/include \

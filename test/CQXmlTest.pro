@@ -26,12 +26,13 @@ INCLUDEPATH += \
 unix:LIBS += \
 -L../lib \
 -L../../CQStyleWidget/lib \
+-L../../CQColorPalette/lib \
 -L../../CQUtil/lib \
 -L../../CXML/lib \
 -L../../CFile/lib \
 -L../../COS/lib \
 -L../../CStrUtil/lib \
 -L../../CRegExp/lib \
--lCQXml -lCQStyleWidget -lCQUtil \
+-lCQXml -lCQStyleWidget -lCQColorPalette -lCQUtil \
 -lCXML -lCFile -lCOS -lCStrUtil -lCRegExp \
 -ltre

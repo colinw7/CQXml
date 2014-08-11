@@ -8,6 +8,11 @@ class CQXmlTest : public QDialog {
  public:
   CQXmlTest();
 
+  void loadFile(const char *filename);
+  void loadStr(const char *str);
+
+  void addControl();
+
  private:
   CQXml *xml_;
 };
