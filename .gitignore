@@ -3,7 +3,9 @@
 moc_*
 
 src/Makefile
+
 test/Makefile
+test/CQXmlTest
 
 bin/
 obj/
