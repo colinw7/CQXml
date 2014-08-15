@@ -1,0 +1,33 @@
+<qxml>
+<QTabBar>
+<QTabItem icon="one.xpm" text="One"/>
+<QTabItem icon="two.xpm" text="Two"/>
+<QTabItem icon="three.xpm" text="Three"/>
+</QTabBar>
+<QTabWidget>
+<QWidget tabName="Tab 1" tabIcon="one.xpm">
+<QVBoxLayout>
+<QPushButton text="One"/>
+<QPushButton text="Two"/>
+<QPushButton text="Three"/>
+<QLayoutItem stretch="1"/>
+</QVBoxLayout>
+</QWidget>
+<QWidget tabName="Tab 2" tabIcon="two.xpm">
+<QVBoxLayout>
+<QPushButton text="Four"/>
+<QPushButton text="Five"/>
+<QLayoutItem stretch="1"/>
+<QPushButton text="Six"/>
+</QVBoxLayout>
+</QWidget>
+<QWidget tabName="Tab 2" tabIcon="three.xpm">
+<QVBoxLayout>
+<QPushButton text="Seven"/>
+<QLayoutItem stretch="1"/>
+<QPushButton text="Eight"/>
+<QPushButton text="Nine"/>
+</QVBoxLayout>
+</QWidget>
+</QTabWidget>
+</qxml>

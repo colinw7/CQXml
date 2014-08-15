@@ -1,0 +1,54 @@
+<qxml>
+<QHBoxLayout>
+<h1>Heading 1</h1>
+<h2>Heading 2</h2>
+<h3>Heading 3</h3>
+<h4>Heading 4</h4>
+<p>Paragraph</p>
+</QHBoxLayout>
+<QGridLayout name="l1" columnStretch="2,1">
+<QLabel text="X:" row="0" col="0"/>
+<QLineEdit row="0" col="1"/>
+<QLabel text="Y:" row="1" col="0"/>
+<QLineEdit row="1" col="1"/>
+</QGridLayout>
+<QGroupBox title="Group">
+<QVBoxLayout name="l2" margin="2" spacing="2">
+<QHBoxLayout>
+<QPushButton text="Button 1"/>
+<QLayoutItem stretch="1"/>
+<QPushButton text="Button 2"/>
+</QHBoxLayout>
+<QCheckBox text="Check"/>
+<QRadioButton text="Radio"/>
+<QToolButton icon="clear_16_xpm.xpm"/>
+<QSpinBox minimum="10" maximum="90"/>
+<QDoubleSpinBox minimum="1.2" maximum="3.4" singleStep="0.1"/>
+<QComboBox>
+<QComboItem>One</QComboItem>
+<QComboItem>Two</QComboItem>
+<QComboItem>Three</QComboItem>
+</QComboBox>
+<QFrame frameWidth="5" frameShadow="Raised" frameShape="Panel" minimumWidth="32" minimumHeight="32"/>
+<QListWidget>
+<QListItem>One</QListItem>
+<QListItem>Two</QListItem>
+<QListItem>Three</QListItem>
+</QListWidget>
+<QTreeWidget columnCount="3">
+<QTreeItem>One Two Three</QTreeItem>
+</QTreeWidget>
+<QSplitter orientation="Horizontal"/>
+<QScrollBar orientation="Horizontal"/>
+</QVBoxLayout>
+</QGroupBox>
+<QVBoxLayout>
+<QTextEdit>
+The rain in Spain falls mainly on the plain.
+</QTextEdit>
+<QPlainTextEdit>
+The rain in Spain falls mainly on the plain.
+</QPlainTextEdit>
+<QProgressBar minimum="0" maximum="100" value="50"/>
+</QVBoxLayout>
+</qxml>

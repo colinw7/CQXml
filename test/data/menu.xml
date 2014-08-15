@@ -1,0 +1,17 @@
+<qxml>
+<QMenu name="menu">
+<QAction name="one" icon="one.xpm">One</QAction>
+<QAction name="two" icon="two.xpm">Two</QAction>
+<QAction name="three" icon="three.xpm">Three</QAction>
+</QMenu>
+<QToolButton autoRaise="true" popupMode="InstantPopup" menuRef="menu">Tool Button</QToolButton>
+<QPushButton menuRef="menu">Push Button</QPushButton>
+<QToolBar>
+<QAction actionRef="one"/>
+<QAction actionRef="two"/>
+<QAction actionRef="three"/>
+</QToolBar>
+<QMenuBar>
+<QMenu menuRef="menu"/>
+</QMenuBar>
+</qxml>

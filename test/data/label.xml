@@ -1,0 +1,4 @@
+<qxml>
+<QLabel text="Label"/>
+<QLabel pixmap="one.xpm"/>
+</qxml>

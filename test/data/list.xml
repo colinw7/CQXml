@@ -1,0 +1,7 @@
+<qxml>
+<QListWidget>
+<QListItem>One</QListItem>
+<QListItem>Two</QListItem>
+<QListItem>Three</QListItem>
+</QListWidget>
+</qxml>

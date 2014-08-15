@@ -12,6 +12,7 @@ class CQXmlFactory;
 
 class QWidget;
 class QLayout;
+class QAction;
 
 class CQXmlWidgetFactory {
  public:
@@ -39,12 +40,13 @@ class CQXml {
 
   CXML *getXml() const { return xml_; }
 
+  QWidget *parent() const { return parent_; }
+
   CQXmlFactory *getFactory() const { return factory_; }
 
   CQXmlWidgetFactory *getWidgetFactory(const QString &name) const;
 
   void addLayout(const QString &name, QLayout *l);
-
   QLayout *getLayout(const QString &name) const;
 
   template<typename T>
@@ -53,7 +55,6 @@ class CQXml {
   }
 
   void addWidget(const QString &name, QWidget *w);
-
   QWidget *getWidget(const QString &name) const;
 
   template<typename T>
@@ -61,16 +62,22 @@ class CQXml {
     return qobject_cast<T *>(getWidget(name));
   }
 
+  void addAction(const QString &name, QAction *action);
+  QAction *getAction(const QString &name) const;
+
  private:
  private:
   typedef std::map<QString, QLayout *>            LayoutMap;
   typedef std::map<QString, QWidget *>            WidgetMap;
+  typedef std::map<QString, QAction *>            ActionMap;
   typedef std::map<QString, CQXmlWidgetFactory *> WidgetFactories;
 
   CXML            *xml_;
+  QWidget         *parent_;
   CQXmlFactory    *factory_;
   LayoutMap        layouts_;
   WidgetMap        widgets_;
+  ActionMap        actions_;
   WidgetFactories  widgetFactories_;
 };
 

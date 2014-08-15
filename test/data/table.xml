@@ -1,0 +1,8 @@
+<qxml>
+<QTableWidget rowCount="4" columnCount="4" rowLabels="A B C D" columnLabels="1 2 3 4">
+<QTableItem row="0" column="0">0</QTableItem>
+<QTableItem row="1" column="1">1</QTableItem>
+<QTableItem row="2" column="2">2</QTableItem>
+<QTableItem row="3" column="3">3</QTableItem>
+</QTableWidget>
+</qxml>

@@ -1,0 +1,12 @@
+<qxml>
+<QComboBox>
+<QComboItem>One</QComboItem>
+<QComboItem>Two</QComboItem>
+<QComboItem>Three</QComboItem>
+</QComboBox>
+<QComboBox>
+<QComboItem text="One" icon="one.xpm"/>
+<QComboItem text="Two" icon="two.xpm"/>
+<QComboItem text="Three" icon="three.xpm"/>
+</QComboBox>
+</qxml>

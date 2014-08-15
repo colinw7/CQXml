@@ -42,7 +42,7 @@ main(int argc, char **argv)
   else
     test->loadStr(xmlStr);
 
-  test->addControl();
+  //test->addControl();
 
   test->resize(500, 500);
 

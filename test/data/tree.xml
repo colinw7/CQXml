@@ -1,0 +1,7 @@
+<qxml>
+<QTreeWidget columnCount="2" columnLabels="Value Name">
+<QTreeItem>1 One</QTreeItem>
+<QTreeItem>2 Two</QTreeItem>
+<QTreeItem>3 Three</QTreeItem>
+</QTreeWidget>
+</qxml>

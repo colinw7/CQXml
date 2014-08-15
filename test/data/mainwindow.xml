@@ -1,0 +1,38 @@
+<qxml>
+<QMenu title="Menu" name="menu">
+<QAction name="one" icon="one.xpm">One</QAction>
+<QAction name="two" icon="two.xpm">Two</QAction>
+<QAction name="three" icon="three.xpm">Three</QAction>
+</QMenu>
+<QMainWindow>
+<QMenuBar>
+<QMenu menuRef="menu"/>
+</QMenuBar>
+<QToolBar>
+<QAction actionRef="one"/>
+<QAction actionRef="two"/>
+<QAction actionRef="three"/>
+</QToolBar>
+<QDockWidget>
+<QFrame>
+<QVBoxLayout>
+<QPushButton text="One"/>
+<QPushButton text="Two"/>
+<QPushButton text="Three"/>
+<QLayoutItem stretch="1"/>
+</QVBoxLayout>
+</QFrame>
+</QDockWidget>
+<QDockWidget dockWidgetArea="right">
+<QFrame>
+<QVBoxLayout>
+<QPushButton text="Four"/>
+<QPushButton text="Five"/>
+<QPushButton text="Six"/>
+<QLayoutItem stretch="1"/>
+</QVBoxLayout>
+</QFrame>
+</QDockWidget>
+<QFrame minimumSize="200 200"/>
+</QMainWindow>
+</qxml>
