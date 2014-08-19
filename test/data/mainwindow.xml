@@ -6,7 +6,11 @@
 </QMenu>
 <QMainWindow>
 <QMenuBar>
-<QMenu menuRef="menu"/>
+<QMenuTitle text="File">
+<QAction actionRef="one"/>
+<QAction actionRef="two"/>
+<QAction actionRef="three"/>
+</QMenuTitle>
 </QMenuBar>
 <QToolBar>
 <QAction actionRef="one"/>

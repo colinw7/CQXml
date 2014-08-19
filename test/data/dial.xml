@@ -1,0 +1,5 @@
+<qxml>
+<QDial name="dial" notchSize="5" notchTarge="4.5" notchesVisible="true" wrapping="true"/>
+<QSpinBox name="spin"/>
+<connect source="dial" sourceSignal="valueChanged(int)" dest="spin" destSlot="setValue(int)"/>
+</qxml>

@@ -1,0 +1,14 @@
+<qxml>
+<QWizard windowTitle="Wizard">
+<QWizardPage title="Title 1" subTitle="Subtitle 1">
+<QVBoxLayout>
+<QLabel text="Details for page 1."/>
+</QVBoxLayout>
+</QWizardPage>
+<QWizardPage title="Title 2" subTitle="Subtitle 2">
+<QVBoxLayout>
+<QLabel text="Details for page 2."/>
+</QVBoxLayout>
+</QWizardPage>
+</QWizard>
+</qxml>

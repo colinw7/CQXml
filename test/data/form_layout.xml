@@ -1,0 +1,5 @@
+<qxml layoutType="Form">
+<QLineEdit formLabel="One"/>
+<QLineEdit formLabel="Two"/>
+<QLineEdit formLabel="Three"/>
+</qxml>

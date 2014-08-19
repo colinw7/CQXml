@@ -1,0 +1,24 @@
+<qxml>
+<QMainWindow>
+<QMdiArea>
+<QMdiSubWindow>
+<QFrame>
+<QVBoxLayout>
+<QPushButton text="One"/>
+<QPushButton text="Two"/>
+<QPushButton text="Three"/>
+</QVBoxLayout>
+</QFrame>
+</QMdiSubWindow>
+<QMdiSubWindow>
+<QFrame>
+<QVBoxLayout>
+<QPushButton text="Four"/>
+<QPushButton text="Five"/>
+<QPushButton text="Size"/>
+</QVBoxLayout>
+</QFrame>
+</QMdiSubWindow>
+</QMdiArea>
+</QMainWindow>
+</qxml>

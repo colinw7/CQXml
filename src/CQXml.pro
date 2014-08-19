@@ -4,7 +4,7 @@ TARGET = CQXml
 
 DEPENDPATH += .
 
-QT += widgets
+QT += widgets printsupport webkitwidgets
 
 CONFIG += staticlib
 

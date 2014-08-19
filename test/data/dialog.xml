@@ -1,0 +1,13 @@
+<qxml>
+<QColorDialog>
+</QColorDialog>
+<QFileDialog>
+</QFileDialog>
+<QFontDialog>
+</QFontDialog>
+<QPrintDialog>
+</QPrintDialog>
+<QProgressDialog>
+</QProgressDialog>
+<QMessageBox detailedText="Detail Text" icon="one.xpm" informativeText="Information Text" text="Text"/>
+</qxml>

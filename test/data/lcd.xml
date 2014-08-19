@@ -1,0 +1,6 @@
+<qxml>
+<QLCDNumber minimumHeight="64" mode="Bin" segmentStyle="Outline" intValue="12"/>
+<QLCDNumber minimumHeight="64" mode="Dec" segmentStyle="Filled" intValue="34"/>
+<QLCDNumber minimumHeight="64" mode="Hex" segmentStyle="Flat" intValue="56"/>
+<QLCDNumber minimumHeight="64" mode="Oct" intValue="78"/>
+</qxml>

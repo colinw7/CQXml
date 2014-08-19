@@ -4,18 +4,33 @@
 #include <CXMLToken.h>
 #include <CStrUtil.h>
 
+#include <QCalendarWidget>
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
+#include <QDial>
+#include <QDialog>
+#include <QDateEdit>
+#include <QDateTimeEdit>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
+#include <QFileDialog>
+#include <QFontDialog>
+#include <QFontComboBox>
 #include <QGroupBox>
+#include <QLCDNumber>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMainWindow>
+#include <QMdiArea>
+#include <QMdiSubWindow>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPlainTextEdit>
+#include <QPrintDialog>
 #include <QProgressBar>
+#include <QProgressDialog>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollArea>
@@ -31,13 +46,34 @@
 #include <QToolBox>
 #include <QToolButton>
 #include <QTreeWidget>
+#include <QWebView>
+#include <QWizard>
+
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QFormLayout>
+
 #include <QMetaProperty>
 
 #include <iostream>
 #include <cassert>
+
+namespace CQXmlUtil {
+  QBoxLayout::Direction stringToBoxLayoutDirection(const QString &str) {
+    if      (str.toLower() == "lefttoright") return QBoxLayout::LeftToRight;
+    else if (str.toLower() == "righttoleft") return QBoxLayout::RightToLeft;
+    else if (str.toLower() == "toptobottom") return QBoxLayout::TopToBottom;
+    else if (str.toLower() == "bottomtotop") return QBoxLayout::BottomToTop;
+    else                                     return QBoxLayout::LeftToRight;
+  }
+
+  QBoxLayout *newBoxLayout(QWidget *w, const QString &str) {
+    return new QBoxLayout(stringToBoxLayoutDirection(str), w);
+  }
+}
+
+using namespace CQXmlUtil;
 
 class CQXmlRootTag;
 
@@ -85,15 +121,19 @@ class CQXmlTag : public CXMLTag {
 
   virtual bool isRoot  () const { return false; }
   virtual bool isLayout() const { return false; }
+  virtual bool isWidget() const { return false; }
+  virtual bool isExec  () const { return false; }
 
-  virtual QLayout *createLayout(QWidget *, QLayout *) { return 0; }
+  virtual QLayout *createLayout(QWidget *, QLayout *, CQXmlTag *) { return 0; }
 
-  virtual QWidget *createWidget(QLayout *, const QString &) { return 0; }
-  virtual QWidget *createWidget(QWidget *, const QString &) { return 0; }
+  virtual QWidget *createWidget(QLayout *, CQXmlTag *) { return 0; }
+  virtual QWidget *createWidget(QWidget *, CQXmlTag *) { return 0; }
+
+  virtual void exec() { }
 
   virtual void endLayout() { }
 
-  void handleOptions(CXMLTag::OptionArray &options) {
+  virtual void handleOptions(CXMLTag::OptionArray &options) {
     CXMLTag::OptionArray::const_iterator o1, o2;
 
     for (auto option : options) {
@@ -109,11 +149,22 @@ class CQXmlTag : public CXMLTag {
     return (nameValues_.find(name) != nameValues_.end());
   }
 
-  QString nameValue(const QString &name) {
-    return nameValues_[name];
+  QString nameValue(const QString &name) const {
+    NameValues::const_iterator p = nameValues_.find(name);
+
+    if (p != nameValues_.end())
+      return (*p).second;
+    else
+      return "";
   }
 
   virtual bool handleOption(const std::string &, const std::string &) { return false; }
+
+  QString getText() const {
+    std::string text = CXMLTag::getText(false);
+
+    return (! text.length() ? nameValue("text") : QString(text.c_str()));
+  }
 
  protected:
   typedef std::map<QString,QString> NameValues;
@@ -121,67 +172,14 @@ class CQXmlTag : public CXMLTag {
   NameValues nameValues_;
 };
 
-class CQXmlRootTag : public CQXmlTag {
- public:
-  CQXmlRootTag(CXMLTag *parent, CQXml *xml, const std::string &name,
-               CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options), xml_(xml) {
-    CQXmlFactory *factory = xml->getFactory();
-
-    factory->setRoot(this);
-  }
-
-  bool handleOption(const std::string &name, const std::string &value) {
-    if (name == "windowTitle")
-      getXml()->parent()->setWindowTitle(value.c_str());
-    else
-      return false;
-
-    return true;
-  }
-
-  bool isRoot() const { return true; }
-
-  CQXml *getXml() const { return xml_; }
-
- private:
-  CQXml *xml_;
-};
-
-class CQXmlHeadingTag : public CQXmlTag {
- public:
-  CQXmlHeadingTag(CXMLTag *parent, int level, const std::string &name,
-                  CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options), level_(level) {
-  }
-
-  QWidget *createWidget(QLayout *l, const QString &text) {
-    QString type = QString("h%1").arg(level_);
-
-    return CQStyleWidgetMgrInst->addStyleLabel(l, text, type);
-  }
-
- private:
-  int level_;
-};
-
-class CQXmlPTag : public CQXmlTag {
- public:
-  CQXmlPTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
-  }
-
-  QWidget *createWidget(QLayout *l, const QString &text) {
-    return CQStyleWidgetMgrInst->addParagraph(l, text);
-  }
-};
-
 class CQXmlLayoutTag : public CQXmlTag {
  public:
   enum Type  {
    HBox,
    VBox,
-   Grid
+   Box,
+   Grid,
+   Form
   };
 
  public:
@@ -190,10 +188,14 @@ class CQXmlLayoutTag : public CQXmlTag {
    CQXmlTag(parent, name, options), type_(type) {
   }
 
-  QLayout *createLayout(QWidget *w, QLayout *l) {
+  bool isLayout() const { return true; }
+
+  QLayout *createLayout(QWidget *w, QLayout *l, CQXmlTag *) {
     if      (type_ == HBox) layout_ = new QHBoxLayout(w);
     else if (type_ == VBox) layout_ = new QVBoxLayout(w);
     else if (type_ == Grid) layout_ = new QGridLayout(w);
+    else if (type_ == Form) layout_ = new QFormLayout(w);
+    else if (type_ == Box ) layout_ = newBoxLayout(w, nameValue("direction"));
     else                    assert(false);
 
     int margin = 2, spacing = 2;
@@ -209,6 +211,11 @@ class CQXmlLayoutTag : public CQXmlTag {
         qobject_cast<QBoxLayout  *>(l)->addLayout(layout_);
       else if (qobject_cast<QGridLayout *>(l))
         qobject_cast<QGridLayout *>(l)->addLayout(layout_, 0, 0);
+      else if (qobject_cast<QFormLayout *>(l)) {
+        QString label = nameValue("formLabel");
+
+        qobject_cast<QFormLayout *>(l)->addRow(label, layout_);
+      }
       else
         assert(false);
     }
@@ -218,8 +225,6 @@ class CQXmlLayoutTag : public CQXmlTag {
 
     return layout_;
   }
-
-  bool isLayout() const { return true; }
 
   bool handleOption(const std::string &name, const std::string &value) {
     if      (name == "columnStretch") {
@@ -256,6 +261,8 @@ class CQXmlLayoutTag : public CQXmlTag {
       for (auto ipair : rowStretches_)
         grid->setRowStretch(ipair.first, ipair.second);
     }
+    else if (qobject_cast<QFormLayout *>(layout_)) {
+    }
     else
       assert(false);
   }
@@ -270,13 +277,104 @@ class CQXmlLayoutTag : public CQXmlTag {
   IntIntPairArray rowStretches_;
 };
 
+class CQXmlRootTag : public CQXmlTag {
+ public:
+  CQXmlRootTag(CXMLTag *parent, CQXml *xml, const std::string &name,
+               CXMLTag::OptionArray &options) :
+   CQXmlTag(parent, name, options), xml_(xml), type_(CQXmlLayoutTag::VBox) {
+    CQXmlFactory *factory = xml->getFactory();
+
+    factory->setRoot(this);
+
+    for (auto option : options) {
+      const std::string &name  = option->getName();
+      const std::string &value = option->getValue();
+
+      if (name == "layoutType") {
+        QString value1(value.c_str());
+
+        if      (value1.toLower() == "hbox") type_ = CQXmlLayoutTag::HBox;
+        else if (value1.toLower() == "vbox") type_ = CQXmlLayoutTag::VBox;
+        else if (value1.toLower() == "box" ) type_ = CQXmlLayoutTag::Box;
+        else if (value1.toLower() == "grid") type_ = CQXmlLayoutTag::Grid;
+        else if (value1.toLower() == "form") type_ = CQXmlLayoutTag::Form;
+      }
+    }
+  }
+
+  bool isRoot() const { return true; }
+
+  CQXml *getXml() const { return xml_; }
+
+  bool handleOption(const std::string &name, const std::string &value) {
+    if (name == "windowTitle")
+      getXml()->parent()->setWindowTitle(value.c_str());
+    else
+      return false;
+
+    return true;
+  }
+
+  QLayout *createLayout(QWidget *parent) {
+    QLayout *layout = 0;
+
+    if      (type_ == CQXmlLayoutTag::HBox) layout = new QHBoxLayout(parent);
+    else if (type_ == CQXmlLayoutTag::VBox) layout = new QVBoxLayout(parent);
+    else if (type_ == CQXmlLayoutTag::Box ) layout = newBoxLayout(parent, nameValue("direction"));
+    else if (type_ == CQXmlLayoutTag::Grid) layout = new QGridLayout(parent);
+    else if (type_ == CQXmlLayoutTag::Form) layout = new QFormLayout(parent);
+
+    layout->setMargin(0); layout->setSpacing(0);
+
+    return layout;
+  }
+
+ private:
+  CQXml                *xml_;
+  CQXmlLayoutTag::Type  type_;
+};
+
+class CQXmlHeadingTag : public CQXmlTag {
+ public:
+  CQXmlHeadingTag(CXMLTag *parent, int level, const std::string &name,
+                  CXMLTag::OptionArray &options) :
+   CQXmlTag(parent, name, options), level_(level) {
+  }
+
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QLayout *l, CQXmlTag *) {
+    QString type = QString("h%1").arg(level_);
+
+    return CQStyleWidgetMgrInst->addStyleLabel(l, getText(), type);
+  }
+
+ private:
+  int level_;
+};
+
+class CQXmlPTag : public CQXmlTag {
+ public:
+  CQXmlPTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
+   CQXmlTag(parent, name, options) {
+  }
+
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QLayout *l, CQXmlTag *) {
+    return CQStyleWidgetMgrInst->addParagraph(l, getText());
+  }
+};
+
 class CQXmlLayoutItemTag : public CQXmlTag {
  public:
   CQXmlLayoutItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
    CQXmlTag(parent, name, options) {
   }
 
-  QLayout *createLayout(QWidget *, QLayout *l) {
+  bool isLayout() const { return true; }
+
+  QLayout *createLayout(QWidget *, QLayout *l, CQXmlTag *) {
     if      (qobject_cast<QBoxLayout *>(l)) {
       if (hasNameValue("spacing"))
         qobject_cast<QBoxLayout *>(l)->addSpacing(nameValue("spacing").toInt());
@@ -287,8 +385,6 @@ class CQXmlLayoutItemTag : public CQXmlTag {
 
     return l;
   }
-
-  bool isLayout() const { return true; }
 };
 
 class CQXmlComboItemTag : public CQXmlTag {
@@ -297,18 +393,18 @@ class CQXmlComboItemTag : public CQXmlTag {
    CQXmlTag(parent, name, options) {
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
-    if (! qobject_cast<QComboBox *>(w)) return w;
+  bool isWidget() const { return true; }
 
-    QString text1 = (! text.length() ? nameValue("text") : text);
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
+    if (! qobject_cast<QComboBox *>(w)) return w;
 
     if (hasNameValue("icon")) {
       QPixmap pixmap(nameValue("icon"));
 
-      qobject_cast<QComboBox *>(w)->addItem(QIcon(pixmap), text1);
+      qobject_cast<QComboBox *>(w)->addItem(QIcon(pixmap), getText());
     }
     else
-      qobject_cast<QComboBox *>(w)->addItem(text1);
+      qobject_cast<QComboBox *>(w)->addItem(getText());
 
     return w;
   }
@@ -320,12 +416,12 @@ class CQXmlListItemTag : public CQXmlTag {
    CQXmlTag(parent, name, options) {
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
     if (! qobject_cast<QListWidget *>(w)) return w;
 
-    QString text1 = (! text.length() ? nameValue("text") : text);
-
-    qobject_cast<QListWidget *>(w)->addItem(text1);
+    qobject_cast<QListWidget *>(w)->addItem(getText());
 
     return w;
   }
@@ -337,12 +433,12 @@ class CQXmlTableItemTag : public CQXmlTag {
    CQXmlTag(parent, name, options) {
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
     if (! qobject_cast<QTableWidget *>(w)) return w;
 
-    QString text1 = (! text.length() ? nameValue("text") : text);
-
-    QTableWidgetItem *item = new QTableWidgetItem(text1);
+    QTableWidgetItem *item = new QTableWidgetItem(getText());
 
     int row = nameValue("row"   ).toInt();
     int col = nameValue("column").toInt();
@@ -359,12 +455,12 @@ class CQXmlTreeItemTag : public CQXmlTag {
    CQXmlTag(parent, name, options) {
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
     if (! qobject_cast<QTreeWidget *>(w)) return w;
 
-    QString text1 = (! text.length() ? nameValue("text") : text);
-
-    QStringList items = text1.split(' ');
+    QStringList items = getText().split(' ');
 
     QTreeWidgetItem *item = new QTreeWidgetItem(items);
 
@@ -380,20 +476,37 @@ class CQXmlTabItemTag : public CQXmlTag {
    CQXmlTag(parent, name, options) {
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
-    if (! qobject_cast<QTabBar *>(w)) return w;
+  bool isWidget() const { return true; }
 
-    QString text1 = (! text.length() ? nameValue("text") : text);
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
+    if (! qobject_cast<QTabBar *>(w)) return w;
 
     if (hasNameValue("icon")) {
       QPixmap pixmap(nameValue("icon"));
 
-      qobject_cast<QTabBar *>(w)->addTab(QIcon(pixmap), text1);
+      qobject_cast<QTabBar *>(w)->addTab(QIcon(pixmap), getText());
     }
     else
-      qobject_cast<QTabBar *>(w)->addTab(text1);
+      qobject_cast<QTabBar *>(w)->addTab(getText());
 
     return w;
+  }
+};
+
+class CQXmlMenuTitleTag : public CQXmlTag {
+ public:
+  CQXmlMenuTitleTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
+   CQXmlTag(parent, name, options) {
+  }
+
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
+    if (! qobject_cast<QMenuBar *>(w)) return w;
+
+    QMenu *menu = qobject_cast<QMenuBar *>(w)->addMenu(getText());
+
+    return menu;
   }
 };
 
@@ -403,9 +516,9 @@ class CQXmlActionTag : public CQXmlTag {
    CQXmlTag(parent, name, options) {
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
-    QString text1 = (! text.length() ? nameValue("text") : text);
+  bool isWidget() const { return true; }
 
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
     QAction *action = 0;
 
     if      (hasNameValue("actionRef"))
@@ -413,10 +526,10 @@ class CQXmlActionTag : public CQXmlTag {
     else if (hasNameValue("icon")) {
       QPixmap pixmap(nameValue("icon"));
 
-      action = new QAction(QIcon(pixmap), text1, 0);
+      action = new QAction(QIcon(pixmap), getText(), 0);
     }
-    else if (text1.length())
-      action = new QAction(text1, 0);
+    else if (getText().length())
+      action = new QAction(getText(), 0);
 
     if (! action)
       return w;
@@ -433,18 +546,56 @@ class CQXmlActionTag : public CQXmlTag {
   }
 };
 
+class CQXmlConnectTag : public CQXmlTag {
+ public:
+  CQXmlConnectTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
+   CQXmlTag(parent, name, options) {
+  }
+
+  bool isExec() const { return true; }
+
+  void exec() {
+    QWidget *source = 0, *dest = 0;
+
+    if (hasNameValue("source"))
+      source = getXml()->getWidget(nameValue("source"));
+
+    if (hasNameValue("dest"))
+      dest = getXml()->getWidget(nameValue("dest"));
+
+    QString sourceSignal = "2" + nameValue("sourceSignal");
+
+    if (hasNameValue("destSignal")) {
+      QString destSignal = "2" + nameValue("destSignal");
+
+      QObject::connect(source, sourceSignal.toLatin1(), dest, destSignal.toLatin1());
+    }
+    else {
+      QString destSlot = "1" + nameValue("destSlot");
+
+      QObject::connect(source, sourceSignal.toLatin1(), dest, destSlot.toLatin1());
+    }
+  }
+};
+
 class CQXmlQtWidgetTag : public CQXmlTag {
  public:
   CQXmlQtWidgetTag(CXMLTag *parent, const std::string &type, CXMLTag::OptionArray &options) :
    CQXmlTag(parent, type, options), type_(type.c_str()) {
   }
 
-  QWidget *createWidget(QLayout *l, const QString &text) {
+  bool isWidget() const { return true; }
+
+  QWidget *createWidget(QLayout *l, CQXmlTag *) {
+    QString text = getText();
+
     QWidget *w = createWidgetI(text);
 
     bool allowLayout = true;
 
-    if (qobject_cast<QMainWindow *>(w) || qobject_cast<QMenu *>(w))
+    if (qobject_cast<QDialog *>(w) ||
+        qobject_cast<QMainWindow *>(w) ||
+        qobject_cast<QMenu *>(w))
       allowLayout = false;
 
     if (l && allowLayout) {
@@ -455,6 +606,11 @@ class CQXmlQtWidgetTag : public CQXmlTag {
         int col = nameValue("col").toInt();
 
         qobject_cast<QGridLayout *>(l)->addWidget(w, row, col);
+      }
+      else if (qobject_cast<QFormLayout *>(l)) {
+        QString label = nameValue("formLabel");
+
+        qobject_cast<QFormLayout *>(l)->addRow(label, w);
       }
     }
 
@@ -468,13 +624,15 @@ class CQXmlQtWidgetTag : public CQXmlTag {
         qobject_cast<QPushButton *>(w)->setMenu(menu);
     }
 
-    if (qobject_cast<QMainWindow *>(w))
+    if (qobject_cast<QDialog *>(w) || qobject_cast<QMainWindow *>(w))
       w->show();
 
     return w;
   }
 
-  QWidget *createWidget(QWidget *w, const QString &text) {
+  QWidget *createWidget(QWidget *w, CQXmlTag *) {
+    QString text = getText();
+
     QWidget *w1 = createWidgetI(text);
 
     if      (qobject_cast<QTabWidget *>(w)) {
@@ -504,6 +662,11 @@ class CQXmlQtWidgetTag : public CQXmlTag {
         qobject_cast<QMenuBar *>(w)->addMenu(qobject_cast<QMenu *>(w1));
       }
     }
+    else if (qobject_cast<QMenu *>(w)) {
+      if (qobject_cast<QMenu *>(w1)) {
+        qobject_cast<QMenu *>(w)->addMenu(qobject_cast<QMenu *>(w1));
+      }
+    }
     else if (qobject_cast<QMainWindow *>(w)) {
       if      (qobject_cast<QDockWidget *>(w1)) {
         Qt::DockWidgetArea area = Qt::LeftDockWidgetArea;
@@ -511,32 +674,24 @@ class CQXmlQtWidgetTag : public CQXmlTag {
         QString dockWidgetArea = nameValue("dockWidgetArea");
 
         if (dockWidgetArea.length()) {
-          if      (dockWidgetArea.toLower() == "left")
-            area = Qt::LeftDockWidgetArea;
-          else if (dockWidgetArea.toLower() == "right")
-            area = Qt::RightDockWidgetArea;
-          else if (dockWidgetArea.toLower() == "top")
-            area = Qt::TopDockWidgetArea;
-          else if (dockWidgetArea.toLower() == "bottom")
-            area = Qt::BottomDockWidgetArea;
+          if      (dockWidgetArea.toLower() == "left"  ) area = Qt::LeftDockWidgetArea;
+          else if (dockWidgetArea.toLower() == "right" ) area = Qt::RightDockWidgetArea;
+          else if (dockWidgetArea.toLower() == "top"   ) area = Qt::TopDockWidgetArea;
+          else if (dockWidgetArea.toLower() == "bottom") area = Qt::BottomDockWidgetArea;
         }
 
         qobject_cast<QMainWindow *>(w)->addDockWidget(area, qobject_cast<QDockWidget *>(w1));
       }
       else if (qobject_cast<QToolBar *>(w1)) {
-        Qt::ToolBarArea area = Qt::LeftToolBarArea;
+        Qt::ToolBarArea area = Qt::TopToolBarArea;
 
         QString toolBarArea = nameValue("toolBarArea");
 
         if (toolBarArea.length()) {
-          if      (toolBarArea.toLower() == "left")
-            area = Qt::LeftToolBarArea;
-          else if (toolBarArea.toLower() == "right")
-            area = Qt::RightToolBarArea;
-          else if (toolBarArea.toLower() == "top")
-            area = Qt::TopToolBarArea;
-          else if (toolBarArea.toLower() == "bottom")
-            area = Qt::BottomToolBarArea;
+          if      (toolBarArea.toLower() == "left"  ) area = Qt::LeftToolBarArea;
+          else if (toolBarArea.toLower() == "right" ) area = Qt::RightToolBarArea;
+          else if (toolBarArea.toLower() == "top"   ) area = Qt::TopToolBarArea;
+          else if (toolBarArea.toLower() == "bottom") area = Qt::BottomToolBarArea;
         }
 
         qobject_cast<QMainWindow *>(w)->addToolBar(area, qobject_cast<QToolBar *>(w1));
@@ -545,11 +700,22 @@ class CQXmlQtWidgetTag : public CQXmlTag {
         qobject_cast<QMainWindow *>(w)->setMenuBar(qobject_cast<QMenuBar *>(w1));
       else if (qobject_cast<QStatusBar *>(w1))
         qobject_cast<QMainWindow *>(w)->setStatusBar(qobject_cast<QStatusBar *>(w1));
+      else if (qobject_cast<QMdiArea *>(w1))
+        qobject_cast<QMainWindow *>(w)->setCentralWidget(qobject_cast<QMdiArea *>(w1));
       else
         qobject_cast<QMainWindow *>(w)->setCentralWidget(w1);
     }
     else if (qobject_cast<QDockWidget *>(w)) {
       qobject_cast<QDockWidget *>(w)->setWidget(w1);
+    }
+    else if (qobject_cast<QMdiArea *>(w)) {
+      qobject_cast<QMdiArea *>(w)->addSubWindow(w1);
+    }
+    else if (qobject_cast<QMdiSubWindow *>(w)) {
+      qobject_cast<QMdiSubWindow *>(w)->setWidget(w1);
+    }
+    else if (qobject_cast<QWizard *>(w)) {
+      qobject_cast<QWizard *>(w)->addPage(qobject_cast<QWizardPage *>(w1));
     }
 
     return w1;
@@ -641,7 +807,7 @@ class CQXmlQtWidgetTag : public CQXmlTag {
         qobject_cast<QTreeWidget *>(w)->setHeaderLabels(columnLabels);
     }
 
-    if (hasNameValue("minimumSize")) {
+    if       (hasNameValue("minimumSize")) {
       QStringList sizes = nameValue("minimumSize").split(' ');
 
       if (sizes.length() == 2) {
@@ -650,6 +816,16 @@ class CQXmlQtWidgetTag : public CQXmlTag {
 
         w->setMinimumSize(QSize(w1, w2));
       }
+    }
+    else if (hasNameValue("minimumWidth")) {
+      int w1 = nameValue("minimumWidth").toInt();
+
+      w->setMinimumWidth(w1);
+    }
+    else if (hasNameValue("maximumHeight")) {
+      int h1 = nameValue("maximumHeight").toInt();
+
+      w->setMinimumHeight(h1);
     }
 
     if (hasNameValue("maximumSize")) {
@@ -661,6 +837,16 @@ class CQXmlQtWidgetTag : public CQXmlTag {
 
         w->setMaximumSize(QSize(h1, h2));
       }
+    }
+    else if (hasNameValue("maximumWidth")) {
+      int w1 = nameValue("manimumWidth").toInt();
+
+      w->setMaximumWidth(w1);
+    }
+    else if (hasNameValue("maximumHeight")) {
+      int h1 = nameValue("manimumHeight").toInt();
+
+      w->setMaximumHeight(h1);
     }
 
     return w;
@@ -683,21 +869,36 @@ CQXml() :
 
   xml_->setFactory(factory_);
 
+  addWidgetFactory("QCalendarWidget", new QtWidgetFactory<QCalendarWidget>());
   addWidgetFactory("QCheckBox"      , new QtWidgetFactory<QCheckBox>      ());
+  addWidgetFactory("QColorDialog"   , new QtWidgetFactory<QColorDialog>   ());
   addWidgetFactory("QComboBox"      , new QtWidgetFactory<QComboBox>      ());
+  addWidgetFactory("QDial"          , new QtWidgetFactory<QDial>          ());
+  addWidgetFactory("QDialog"        , new QtWidgetFactory<QDialog>        ());
+  addWidgetFactory("QDateEdit"      , new QtWidgetFactory<QDateEdit>      ());
+  addWidgetFactory("QDateTimeEdit"  , new QtWidgetFactory<QDateTimeEdit>  ());
   addWidgetFactory("QDockWidget"    , new QtWidgetFactory<QDockWidget>    ());
   addWidgetFactory("QDoubleSpinBox" , new QtWidgetFactory<QDoubleSpinBox> ());
+  addWidgetFactory("QFileDialog"    , new QtWidgetFactory<QFileDialog>    ());
+  addWidgetFactory("QFontComboBox"  , new QtWidgetFactory<QFontComboBox>  ());
+  addWidgetFactory("QFontDialog"    , new QtWidgetFactory<QFontDialog>    ());
   addWidgetFactory("QFrame"         , new QtWidgetFactory<QFrame>         ());
   addWidgetFactory("QGroupBox"      , new QtWidgetFactory<QGroupBox>      ());
   addWidgetFactory("QLabel"         , new QtWidgetFactory<QLabel>         ());
+  addWidgetFactory("QLCDNumber"     , new QtWidgetFactory<QLCDNumber>     ());
   addWidgetFactory("QLineEdit"      , new QtWidgetFactory<QLineEdit>      ());
   addWidgetFactory("QListView"      , new QtWidgetFactory<QListView>      ());
   addWidgetFactory("QListWidget"    , new QtWidgetFactory<QListWidget>    ());
   addWidgetFactory("QMainWindow"    , new QtWidgetFactory<QMainWindow>    ());
+  addWidgetFactory("QMdiArea"       , new QtWidgetFactory<QMdiArea>       ());
+  addWidgetFactory("QMdiSubWindow"  , new QtWidgetFactory<QMdiSubWindow>  ());
   addWidgetFactory("QMenu"          , new QtWidgetFactory<QMenu>          ());
   addWidgetFactory("QMenuBar"       , new QtWidgetFactory<QMenuBar>       ());
+  addWidgetFactory("QMessageBox"    , new QtWidgetFactory<QMessageBox>    ());
   addWidgetFactory("QPlainTextEdit" , new QtWidgetFactory<QPlainTextEdit> ());
+  addWidgetFactory("QPrintDialog"   , new QtWidgetFactory<QPrintDialog>   ());
   addWidgetFactory("QProgressBar"   , new QtWidgetFactory<QProgressBar>   ());
+  addWidgetFactory("QProgressDialog", new QtWidgetFactory<QProgressDialog>());
   addWidgetFactory("QPushButton"    , new QtWidgetFactory<QPushButton>    ());
   addWidgetFactory("QRadioButton"   , new QtWidgetFactory<QRadioButton>   ());
   addWidgetFactory("QScrollArea"    , new QtWidgetFactory<QScrollArea>    ());
@@ -718,6 +919,9 @@ CQXml() :
   addWidgetFactory("QTreeView"      , new QtWidgetFactory<QTreeView>      ());
   addWidgetFactory("QTreeWidget"    , new QtWidgetFactory<QTreeWidget>    ());
   addWidgetFactory("QWidget"        , new QtWidgetFactory<QWidget>        ());
+  addWidgetFactory("QWebView"       , new QtWidgetFactory<QWebView>       ());
+  addWidgetFactory("QWizard"        , new QtWidgetFactory<QWizard>        ());
+  addWidgetFactory("QWizardPage"    , new QtWidgetFactory<QWizardPage>    ());
 }
 
 CQXml::
@@ -858,22 +1062,16 @@ createTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &option
 
   if      (name == "qxml")
     tag = new CQXmlRootTag(parent, xml_, name, options);
-  else if (name == "h1")
-    tag = new CQXmlHeadingTag(parent, 1, name, options);
-  else if (name == "h2")
-    tag = new CQXmlHeadingTag(parent, 2, name, options);
-  else if (name == "h3")
-    tag = new CQXmlHeadingTag(parent, 3, name, options);
-  else if (name == "h4")
-    tag = new CQXmlHeadingTag(parent, 4, name, options);
-  else if (name == "p")
-    tag = new CQXmlPTag(parent, name, options);
   else if (name == "QHBoxLayout")
     tag = new CQXmlLayoutTag(parent, CQXmlLayoutTag::HBox, name, options);
   else if (name == "QVBoxLayout")
     tag = new CQXmlLayoutTag(parent, CQXmlLayoutTag::VBox, name, options);
+  else if (name == "QBoxLayout")
+    tag = new CQXmlLayoutTag(parent, CQXmlLayoutTag::Box, name, options);
   else if (name == "QGridLayout")
     tag = new CQXmlLayoutTag(parent, CQXmlLayoutTag::Grid, name, options);
+  else if (name == "QFormLayout")
+    tag = new CQXmlLayoutTag(parent, CQXmlLayoutTag::Form, name, options);
   else if (name == "QLayoutItem")
     tag = new CQXmlLayoutItemTag(parent, name, options);
   else if (name == "QComboItem")
@@ -886,19 +1084,31 @@ createTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &option
     tag = new CQXmlTreeItemTag(parent, name, options);
   else if (name == "QTabItem")
     tag = new CQXmlTabItemTag(parent, name, options);
+  else if (name == "QMenuTitle")
+    tag = new CQXmlMenuTitleTag(parent, name, options);
   else if (name == "QAction")
     tag = new CQXmlActionTag(parent, name, options);
+  else if (name == "connect")
+    tag = new CQXmlConnectTag(parent, name, options);
   else if (xml_->isWidgetFactory(name.c_str()))
     tag = new CQXmlQtWidgetTag(parent, name, options);
+  else if (name == "h1")
+    tag = new CQXmlHeadingTag(parent, 1, name, options);
+  else if (name == "h2")
+    tag = new CQXmlHeadingTag(parent, 2, name, options);
+  else if (name == "h3")
+    tag = new CQXmlHeadingTag(parent, 3, name, options);
+  else if (name == "h4")
+    tag = new CQXmlHeadingTag(parent, 4, name, options);
+  else if (name == "p")
+    tag = new CQXmlPTag(parent, name, options);
   else {
     std::cerr << "Invalid tag name " << name << std::endl;
     return CXMLFactory::createTag(parent, name, options);
   }
 
-  CQXmlTag *tag1 = dynamic_cast<CQXmlTag *>(tag);
-
-  if (tag1)
-    tag1->handleOptions(options);
+  if (tag)
+    tag->handleOptions(options);
 
   return tag;
 }
@@ -907,18 +1117,17 @@ void
 CQXmlFactory::
 createWidgets(QWidget *parent)
 {
-  QVBoxLayout *layout = new QVBoxLayout(parent);
-  layout->setMargin(0); layout->setSpacing(0);
+  QLayout *layout = root_->createLayout(parent);
 
   createWidgets(root_, layout);
-
-  layout->addStretch();
 }
 
 void
 CQXmlFactory::
 createWidgets(CXMLTag *tag, QLayout *layout)
 {
+  CQXmlTag *ptag = dynamic_cast<CQXmlTag *>(tag);
+
   for (int i = 0; i < tag->getNumChildren(); ++i) {
     const CXMLToken *token = tag->getChild(i);
 
@@ -926,19 +1135,20 @@ createWidgets(CXMLTag *tag, QLayout *layout)
       CQXmlTag *tag1 = dynamic_cast<CQXmlTag *>(token->getTag());
       if (! tag1) continue;
 
-      if (tag1->isLayout()) {
-        QLayout *layout1 = tag1->createLayout(0, layout);
+      if      (tag1->isLayout()) {
+        QLayout *layout1 = tag1->createLayout(0, layout, ptag);
 
         createWidgets(tag1, layout1);
 
         tag1->endLayout();
       }
-      else {
-        std::string text = tag1->getText();
-
-        QWidget *widget = tag1->createWidget(layout, text.c_str());
+      else if (tag1->isWidget()) {
+        QWidget *widget = tag1->createWidget(layout, ptag);
 
         createWidgets(tag1, widget);
+      }
+      else if (tag1->isExec()) {
+        tag1->exec();
       }
     }
   }
@@ -948,6 +1158,8 @@ void
 CQXmlFactory::
 createWidgets(CXMLTag *tag, QWidget *widget)
 {
+  CQXmlTag *ptag = dynamic_cast<CQXmlTag *>(tag);
+
   for (int i = 0; i < tag->getNumChildren(); ++i) {
     const CXMLToken *token = tag->getChild(i);
 
@@ -955,8 +1167,8 @@ createWidgets(CXMLTag *tag, QWidget *widget)
       CQXmlTag *tag1 = dynamic_cast<CQXmlTag *>(token->getTag());
       if (! tag1) continue;
 
-      if (tag1->isLayout()) {
-        QLayout *layout1 = tag1->createLayout(widget, 0);
+      if      (tag1->isLayout()) {
+        QLayout *layout1 = tag1->createLayout(widget, 0, ptag);
 
         if (qobject_cast<QGroupBox *>(widget))
           qobject_cast<QGroupBox *>(widget)->setLayout(layout1);
@@ -965,12 +1177,13 @@ createWidgets(CXMLTag *tag, QWidget *widget)
 
         tag1->endLayout();
       }
-      else {
-        std::string text = tag1->getText();
-
-        QWidget *widget1 = tag1->createWidget(widget, text.c_str());
+      else if (tag1->isWidget()) {
+        QWidget *widget1 = tag1->createWidget(widget, ptag);
 
         createWidgets(tag1, widget1);
+      }
+      else if (tag1->isExec()) {
+        tag1->exec();
       }
     }
   }

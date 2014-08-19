@@ -4,7 +4,7 @@ TARGET = CQXmlTest
 
 DEPENDPATH += .
 
-QT += widgets
+QT += widgets printsupport webkitwidgets
 
 #CONFIG += debug
 
