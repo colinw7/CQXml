@@ -4,15 +4,25 @@
 #include <string>
 #include <map>
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
-class CXML;
+#include <CXML.h>
+#include <CXMLTag.h>
+
+class CQXmlTag;
 class CQXmlFactory;
 
 class QWidget;
 class QLayout;
 class QAction;
+
+//----
+
+typedef std::map<QString,QString> CQXmlNameValues;
+
+//----
 
 class CQXmlWidgetFactory {
  public:
@@ -23,20 +33,55 @@ class CQXmlWidgetFactory {
   virtual QWidget *createWidget(const QStringList &params=QStringList()) = 0;
 };
 
+//----
+
+template<typename T>
+class CQXmlWidgetFactoryT : public CQXmlWidgetFactory {
+ public:
+  CQXmlWidgetFactoryT() { }
+
+  QWidget *createWidget(const QStringList &) {
+    return new T;
+  }
+};
+
+#define CQXmlAddWidgetFactoryT(XML, N) \
+(XML)->addWidgetFactory(#N, new CQXmlWidgetFactoryT<N>())
+
+//----
+
+class CQXmlTagFactory {
+ public:
+  CQXmlTagFactory() { }
+
+  virtual ~CQXmlTagFactory() { }
+
+  virtual CQXmlTag *createTag(CXMLTag *parent, const std::string &name,
+                              CXMLTag::OptionArray &options) = 0;
+};
+
+//----
+
+template<typename T>
+class CQXmlTagFactoryT : public CQXmlTagFactory {
+ public:
+  CQXmlTagFactoryT() { }
+
+  CQXmlTag *createTag(CXMLTag *parent, const std::string &name,
+                      CXMLTag::OptionArray &options) {
+    return new T(parent, name, options);
+  }
+};
+
+#define CQXmlAddTagFactoryT(XML, N, T) \
+(XML)->addTagFactory(N, new CQXmlTagFactoryT<T>())
+
+//----
+
 class CQXml {
  public:
   CQXml();
  ~CQXml();
-
-  void createWidgetsFromString(QWidget *parent, const std::string &str);
-
-  void createWidgetsFromFile(QWidget *parent, const std::string &filename);
-
-  bool isWidgetFactory(const QString &name) const;
-
-  void addWidgetFactory(const QString &name, CQXmlWidgetFactory *factory);
-
-  void removeWidgetFactory(const QString &name);
 
   CXML *getXml() const { return xml_; }
 
@@ -44,7 +89,18 @@ class CQXml {
 
   CQXmlFactory *getFactory() const { return factory_; }
 
+  bool isWidgetFactory(const QString &name) const;
+  void addWidgetFactory(const QString &name, CQXmlWidgetFactory *factory);
+  void removeWidgetFactory(const QString &name);
   CQXmlWidgetFactory *getWidgetFactory(const QString &name) const;
+
+  bool isTagFactory(const QString &name) const;
+  void addTagFactory(const QString &name, CQXmlTagFactory *factory);
+  void removeTagFactory(const QString &name);
+  CQXmlTagFactory *getTagFactory(const QString &name) const;
+
+  void createWidgetsFromString(QWidget *parent, const std::string &str);
+  void createWidgetsFromFile  (QWidget *parent, const std::string &filename);
 
   void addLayout(const QString &name, QLayout *l);
   QLayout *getLayout(const QString &name) const;
@@ -71,6 +127,7 @@ class CQXml {
   typedef std::map<QString, QWidget *>            WidgetMap;
   typedef std::map<QString, QAction *>            ActionMap;
   typedef std::map<QString, CQXmlWidgetFactory *> WidgetFactories;
+  typedef std::map<QString, CQXmlTagFactory *>    TagFactories;
 
   CXML            *xml_;
   QWidget         *parent_;
@@ -79,6 +136,7 @@ class CQXml {
   WidgetMap        widgets_;
   ActionMap        actions_;
   WidgetFactories  widgetFactories_;
+  TagFactories     tagFactories_;
 };
 
 #endif
