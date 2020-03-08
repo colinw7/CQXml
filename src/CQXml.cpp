@@ -148,7 +148,8 @@ class CQXmlFactory : public CXMLFactory {
 
   void setRoot(CQXmlRootTag *root) { root_ = root; }
 
-  CXMLTag *createTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options);
+  CXMLTag *createTag(const CXML *tag, CXMLTag *parent, const std::string &name,
+                     CXMLTag::OptionArray &options);
 
   void createWidgets(QWidget *parent);
 
@@ -162,8 +163,9 @@ class CQXmlFactory : public CXMLFactory {
 
 class CQXmlTag : public CXMLTag {
  public:
-  CQXmlTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CXMLTag(parent, name, options) {
+  CQXmlTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+           CXMLTag::OptionArray &options) :
+   CXMLTag(xml, parent, name, options) {
   }
 
   virtual ~CQXmlTag() { }
@@ -185,8 +187,6 @@ class CQXmlTag : public CXMLTag {
   virtual void endLayout() { }
 
   virtual void handleOptions(CXMLTag::OptionArray &options) {
-    CXMLTag::OptionArray::const_iterator o1, o2;
-
     for (auto option : options) {
       const std::string &name  = option->getName();
       const std::string &value = option->getValue();
@@ -225,9 +225,9 @@ class CQXmlTag : public CXMLTag {
 
 class CQXmlLayoutTag : public CQXmlTag {
  public:
-  CQXmlLayoutTag(CXMLTag *parent, CQXmlUtil::LayoutType type, const std::string &name,
-                 CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options), type_(type) {
+  CQXmlLayoutTag(const CXML *xml, CXMLTag *parent, CQXmlUtil::LayoutType type,
+                 const std::string &name, CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options), type_(type) {
   }
 
   bool isLayout() const { return true; }
@@ -319,7 +319,7 @@ class CQXmlRootTag : public CQXmlTag {
  public:
   CQXmlRootTag(CXMLTag *parent, CQXml *xml, const std::string &name,
                CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options), xml_(xml), type_(CQXmlUtil::VBoxLayout) {
+   CQXmlTag(xml->getXml(), parent, name, options), xml_(xml), type_(CQXmlUtil::VBoxLayout) {
     CQXmlFactory *factory = xml->getFactory();
 
     factory->setRoot(this);
@@ -346,7 +346,7 @@ class CQXmlRootTag : public CQXmlTag {
     return true;
   }
 
-  QLayout *createLayout(QWidget *parent) {
+  QLayout *createRootLayout(QWidget *parent) {
     return CQXmlUtil::createLayout(parent, type_, nameValue("direction"));
   }
 
@@ -357,9 +357,9 @@ class CQXmlRootTag : public CQXmlTag {
 
 class CQXmlStyleTag : public CQXmlTag {
  public:
-  CQXmlStyleTag(CXMLTag *parent, const std::string &style, const std::string &name,
-                CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options), style_(style) {
+  CQXmlStyleTag(const CXML *xml, CXMLTag *parent, const std::string &style,
+                const std::string &name, CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options), style_(style) {
   }
 
   bool isWidget() const { return true; }
@@ -374,8 +374,9 @@ class CQXmlStyleTag : public CQXmlTag {
 
 class CQXmlLayoutItemTag : public CQXmlTag {
  public:
-  CQXmlLayoutItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlLayoutItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                     CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isLayout() const { return true; }
@@ -395,8 +396,9 @@ class CQXmlLayoutItemTag : public CQXmlTag {
 
 class CQXmlComboItemTag : public CQXmlTag {
  public:
-  CQXmlComboItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlComboItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                    CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -418,8 +420,9 @@ class CQXmlComboItemTag : public CQXmlTag {
 
 class CQXmlListItemTag : public CQXmlTag {
  public:
-  CQXmlListItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlListItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                   CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -435,8 +438,9 @@ class CQXmlListItemTag : public CQXmlTag {
 
 class CQXmlTableItemTag : public CQXmlTag {
  public:
-  CQXmlTableItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlTableItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                    CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -457,8 +461,9 @@ class CQXmlTableItemTag : public CQXmlTag {
 
 class CQXmlTreeItemTag : public CQXmlTag {
  public:
-  CQXmlTreeItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlTreeItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                   CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -478,8 +483,9 @@ class CQXmlTreeItemTag : public CQXmlTag {
 
 class CQXmlTabItemTag : public CQXmlTag {
  public:
-  CQXmlTabItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlTabItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                  CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -501,8 +507,9 @@ class CQXmlTabItemTag : public CQXmlTag {
 
 class CQXmlMenuTitleTag : public CQXmlTag {
  public:
-  CQXmlMenuTitleTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlMenuTitleTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                    CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -518,8 +525,9 @@ class CQXmlMenuTitleTag : public CQXmlTag {
 
 class CQXmlActionTag : public CQXmlTag {
  public:
-  CQXmlActionTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlActionTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                 CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isWidget() const { return true; }
@@ -554,8 +562,9 @@ class CQXmlActionTag : public CQXmlTag {
 
 class CQXmlConnectTag : public CQXmlTag {
  public:
-  CQXmlConnectTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlConnectTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                  CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isExec() const { return true; }
@@ -588,8 +597,9 @@ class CQXmlConnectTag : public CQXmlTag {
 
 class CQXmlPropertyItemTag : public CQXmlTag {
  public:
-  CQXmlPropertyItemTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, name, options) {
+  CQXmlPropertyItemTag(const CXML *xml, CXMLTag *parent, const std::string &name,
+                       CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, name, options) {
   }
 
   bool isExec() const { return true; }
@@ -617,8 +627,9 @@ class CQXmlPropertyItemTag : public CQXmlTag {
 
 class CQXmlQtWidgetTag : public CQXmlTag {
  public:
-  CQXmlQtWidgetTag(CXMLTag *parent, const std::string &type, CXMLTag::OptionArray &options) :
-   CQXmlTag(parent, type, options), type_(type.c_str()) {
+  CQXmlQtWidgetTag(const CXML *xml, CXMLTag *parent, const std::string &type,
+                   CXMLTag::OptionArray &options) :
+   CQXmlTag(xml, parent, type, options), type_(type.c_str()) {
   }
 
   bool isWidget() const { return true; }
@@ -905,9 +916,9 @@ class CQXmlLayoutTagFactory : public CQXmlTagFactory {
    type_(type) {
   }
 
-  CQXmlTag *createTag(CXMLTag *parent, const std::string &name,
+  CQXmlTag *createTag(const CXML *tag, CXMLTag *parent, const std::string &name,
                       CXMLTag::OptionArray &options) {
-    return new CQXmlLayoutTag(parent, type_, name, options);
+    return new CQXmlLayoutTag(tag, parent, type_, name, options);
   }
 
  private:
@@ -920,9 +931,9 @@ class CQXmlStyleTagFactory : public CQXmlTagFactory {
    style_(style) {
   }
 
-  CQXmlTag *createTag(CXMLTag *parent, const std::string &name,
+  CQXmlTag *createTag(const CXML *tag, CXMLTag *parent, const std::string &name,
                       CXMLTag::OptionArray &options) {
-    return new CQXmlStyleTag(parent, style_, name, options);
+    return new CQXmlStyleTag(tag, parent, style_, name, options);
   }
 
  private:
@@ -1198,7 +1209,7 @@ getAction(const QString &name) const
 
 CXMLTag *
 CQXmlFactory::
-createTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options)
+createTag(const CXML *xml, CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options)
 {
   typedef std::map<QString,QString> NameValues;
 
@@ -1218,12 +1229,12 @@ createTag(CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &option
   if      (name == "qxml")
     tag = new CQXmlRootTag(parent, xml_, name, options);
   else if (xml_->isTagFactory(name.c_str()))
-    tag = xml_->getTagFactory(name.c_str())->createTag(parent, name, options);
+    tag = xml_->getTagFactory(name.c_str())->createTag(xml, parent, name, options);
   else if (xml_->isWidgetFactory(name.c_str()))
-    tag = new CQXmlQtWidgetTag(parent, name, options);
+    tag = new CQXmlQtWidgetTag(xml, parent, name, options);
   else {
     std::cerr << "Invalid tag name " << name << std::endl;
-    return CXMLFactory::createTag(parent, name, options);
+    return CXMLFactory::createTag(xml, parent, name, options);
   }
 
   if (tag)
@@ -1239,7 +1250,7 @@ createWidgets(QWidget *parent)
   QLayout *layout = 0;
 
   if (CQXmlUtil::allowLayout(parent))
-    layout = root_->createLayout(parent);
+    layout = root_->createRootLayout(parent);
 
   if (layout)
     createWidgets(root_, layout);

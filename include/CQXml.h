@@ -56,7 +56,7 @@ class CQXmlTagFactory {
 
   virtual ~CQXmlTagFactory() { }
 
-  virtual CQXmlTag *createTag(CXMLTag *parent, const std::string &name,
+  virtual CQXmlTag *createTag(const CXML *xml, CXMLTag *parent, const std::string &name,
                               CXMLTag::OptionArray &options) = 0;
 };
 
@@ -67,9 +67,9 @@ class CQXmlTagFactoryT : public CQXmlTagFactory {
  public:
   CQXmlTagFactoryT() { }
 
-  CQXmlTag *createTag(CXMLTag *parent, const std::string &name,
+  CQXmlTag *createTag(const CXML *xml, CXMLTag *parent, const std::string &name,
                       CXMLTag::OptionArray &options) {
-    return new T(parent, name, options);
+    return new T(xml, parent, name, options);
   }
 };
 
