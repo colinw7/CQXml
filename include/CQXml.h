@@ -122,21 +122,20 @@ class CQXml {
   QAction *getAction(const QString &name) const;
 
  private:
- private:
-  typedef std::map<QString, QLayout *>            LayoutMap;
-  typedef std::map<QString, QWidget *>            WidgetMap;
-  typedef std::map<QString, QAction *>            ActionMap;
-  typedef std::map<QString, CQXmlWidgetFactory *> WidgetFactories;
-  typedef std::map<QString, CQXmlTagFactory *>    TagFactories;
+  using LayoutMap       = std::map<QString, QLayout *>;
+  using WidgetMap       = std::map<QString, QWidget *>;
+  using ActionMap       = std::map<QString, QAction *>;
+  using WidgetFactories = std::map<QString, CQXmlWidgetFactory *>;
+  using TagFactories    = std::map<QString, CQXmlTagFactory *>;
 
-  CXML            *xml_;
-  QWidget         *parent_;
-  CQXmlFactory    *factory_;
-  LayoutMap        layouts_;
-  WidgetMap        widgets_;
-  ActionMap        actions_;
-  WidgetFactories  widgetFactories_;
-  TagFactories     tagFactories_;
+  CXML*           xml_     { nullptr };
+  QWidget*        parent_  { nullptr };
+  CQXmlFactory*   factory_ { nullptr };
+  LayoutMap       layouts_;
+  WidgetMap       widgets_;
+  ActionMap       actions_;
+  WidgetFactories widgetFactories_;
+  TagFactories    tagFactories_;
 };
 
 #endif

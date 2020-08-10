@@ -756,11 +756,11 @@ class CQXmlQtWidgetTag : public CQXmlTag {
 
  private:
   QWidget *createWidgetI(const QString &text) {
-    CQXml *xml = getXml();
+    auto *xml = getXml();
 
-    CQXmlWidgetFactory *factory = xml->getWidgetFactory(type_);
+    auto *factory = xml->getWidgetFactory(type_);
 
-    QWidget *w = factory->createWidget(options_);
+    auto *w = factory->createWidget(options_);
 
     if (hasNameValue("name")) {
       w->setObjectName(nameValue("name"));
@@ -779,7 +779,7 @@ class CQXmlQtWidgetTag : public CQXmlTag {
     else if (qobject_cast<QTextEdit *>(w))
       qobject_cast<QTextEdit *>(w)->setText(text);
 
-    const QMetaObject *meta = w->metaObject();
+    const auto *meta = w->metaObject();
 
     if (meta) {
       for (auto nameValue : nameValues_) {
