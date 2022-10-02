@@ -218,7 +218,7 @@ class CQXmlTag : public CXMLTag {
   }
 
  protected:
-  typedef std::map<QString,QString> NameValues;
+  typedef std::map<QString, QString> NameValues;
 
   NameValues nameValues_;
 };
@@ -306,7 +306,7 @@ class CQXmlLayoutTag : public CQXmlTag {
   }
 
  private:
-  typedef std::pair<int,int>      IntIntPair;
+  typedef std::pair<int, int>      IntIntPair;
   typedef std::vector<IntIntPair> IntIntPairArray;
 
   CQXmlUtil::LayoutType type_;
@@ -813,7 +813,7 @@ class CQXmlQtWidgetTag : public CQXmlTag {
             v = pixmap;
           }
           else {
-            if (! v.convert(mP.type()))
+            if (! v.convert(int(mP.type())))
               continue;
           }
 
@@ -1211,7 +1211,7 @@ CXMLTag *
 CQXmlFactory::
 createTag(const CXML *xml, CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options)
 {
-  typedef std::map<QString,QString> NameValues;
+  typedef std::map<QString, QString> NameValues;
 
   NameValues nameValues;
 
@@ -1264,8 +1264,8 @@ createWidgets(CXMLTag *tag, QLayout *layout)
 {
   auto *ptag = dynamic_cast<CQXmlTag *>(tag);
 
-  for (int i = 0; i < tag->getNumChildren(); ++i) {
-    const CXMLToken *token = tag->getChild(i);
+  for (size_t i = 0; i < tag->getNumChildren(); ++i) {
+    const auto *token = tag->getChild(int(i));
 
     if (token->isTag()) {
       auto *tag1 = dynamic_cast<CQXmlTag *>(token->getTag());
@@ -1296,8 +1296,8 @@ createWidgets(CXMLTag *tag, QWidget *widget)
 {
   auto *ptag = dynamic_cast<CQXmlTag *>(tag);
 
-  for (int i = 0; i < tag->getNumChildren(); ++i) {
-    const CXMLToken *token = tag->getChild(i);
+  for (size_t i = 0; i < tag->getNumChildren(); ++i) {
+    const auto *token = tag->getChild(int(i));
 
     if (token->isTag()) {
       auto *tag1 = dynamic_cast<CQXmlTag *>(token->getTag());

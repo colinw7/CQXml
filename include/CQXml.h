@@ -20,7 +20,7 @@ class QAction;
 
 //----
 
-typedef std::map<QString,QString> CQXmlNameValues;
+typedef std::map<QString, QString> CQXmlNameValues;
 
 //----
 

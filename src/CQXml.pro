@@ -8,7 +8,7 @@ QT += widgets printsupport webkitwidgets
 
 CONFIG += staticlib
 
-QMAKE_CXXFLAGS += -std=c++14
+QMAKE_CXXFLAGS += -std=c++17
 
 # Input
 HEADERS += \
