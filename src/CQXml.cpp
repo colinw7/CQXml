@@ -149,7 +149,7 @@ class CQXmlFactory : public CXMLFactory {
   void setRoot(CQXmlRootTag *root) { root_ = root; }
 
   CXMLTag *createTag(const CXML *tag, CXMLTag *parent, const std::string &name,
-                     CXMLTag::OptionArray &options);
+                     CXMLTag::OptionArray &options) override;
 
   void createWidgets(QWidget *parent);
 
@@ -230,9 +230,9 @@ class CQXmlLayoutTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options), type_(type) {
   }
 
-  bool isLayout() const { return true; }
+  bool isLayout() const override { return true; }
 
-  QLayout *createLayout(QWidget *w, QLayout *l, CQXmlTag *) {
+  QLayout *createLayout(QWidget *w, QLayout *l, CQXmlTag *) override {
     layout_ = CQXmlUtil::createLayout(w, type_, nameValue("direction"));
 
     layout_->setMargin(0); layout_->setSpacing(0);
@@ -264,7 +264,7 @@ class CQXmlLayoutTag : public CQXmlTag {
     return layout_;
   }
 
-  bool handleOption(const std::string &name, const std::string &value) {
+  bool handleOption(const std::string &name, const std::string &value) override {
     if      (name == "columnStretch") {
       std::vector<std::string> fields;
 
@@ -287,7 +287,7 @@ class CQXmlLayoutTag : public CQXmlTag {
     return true;
   }
 
-  void endLayout() {
+  void endLayout() override {
     if      (qobject_cast<QBoxLayout *>(layout_)) {
     }
     else if (qobject_cast<QGridLayout *>(layout_)) {
@@ -333,11 +333,11 @@ class CQXmlRootTag : public CQXmlTag {
     }
   }
 
-  bool isRoot() const { return true; }
+  bool isRoot() const override { return true; }
 
   CQXml *getXml() const { return xml_; }
 
-  bool handleOption(const std::string &name, const std::string &value) {
+  bool handleOption(const std::string &name, const std::string &value) override {
     if (name == "windowTitle")
       getXml()->parent()->setWindowTitle(value.c_str());
     else
@@ -362,9 +362,9 @@ class CQXmlStyleTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options), style_(style) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createLayoutChild(QLayout *l, CQXmlTag *) {
+  QWidget *createLayoutChild(QLayout *l, CQXmlTag *) override {
     return CQStyleWidgetMgrInst->addStyleLabel(l, getText(), style_.c_str());
   }
 
@@ -379,9 +379,9 @@ class CQXmlLayoutItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isLayout() const { return true; }
+  bool isLayout() const override { return true; }
 
-  QLayout *createLayout(QWidget *, QLayout *l, CQXmlTag *) {
+  QLayout *createLayout(QWidget *, QLayout *l, CQXmlTag *) override {
     if      (qobject_cast<QBoxLayout *>(l)) {
       if (hasNameValue("spacing"))
         qobject_cast<QBoxLayout *>(l)->addSpacing(nameValue("spacing").toInt());
@@ -401,9 +401,9 @@ class CQXmlComboItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     if (! qobject_cast<QComboBox *>(w)) return w;
 
     if (hasNameValue("icon")) {
@@ -425,9 +425,9 @@ class CQXmlListItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     if (! qobject_cast<QListWidget *>(w)) return w;
 
     qobject_cast<QListWidget *>(w)->addItem(getText());
@@ -443,9 +443,9 @@ class CQXmlTableItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     if (! qobject_cast<QTableWidget *>(w)) return w;
 
     auto *item = new QTableWidgetItem(getText());
@@ -466,9 +466,9 @@ class CQXmlTreeItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     if (! qobject_cast<QTreeWidget *>(w)) return w;
 
     auto items = getText().split(' ');
@@ -488,9 +488,9 @@ class CQXmlTabItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     if (! qobject_cast<QTabBar *>(w)) return w;
 
     if (hasNameValue("icon")) {
@@ -512,9 +512,9 @@ class CQXmlMenuTitleTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     if (! qobject_cast<QMenuBar *>(w)) return w;
 
     auto *menu = qobject_cast<QMenuBar *>(w)->addMenu(getText());
@@ -530,9 +530,9 @@ class CQXmlActionTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     QAction *action = nullptr;
 
     if      (hasNameValue("actionRef"))
@@ -567,9 +567,9 @@ class CQXmlConnectTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isExec() const { return true; }
+  bool isExec() const override { return true; }
 
-  bool exec(QWidget *, QLayout *) {
+  bool exec(QWidget *, QLayout *) override {
     QWidget *source = nullptr, *dest = nullptr;
 
     if (hasNameValue("source"))
@@ -602,9 +602,9 @@ class CQXmlPropertyItemTag : public CQXmlTag {
    CQXmlTag(xml, parent, name, options) {
   }
 
-  bool isExec() const { return true; }
+  bool isExec() const override { return true; }
 
-  bool exec(QWidget *widget, QLayout *) {
+  bool exec(QWidget *widget, QLayout *) override {
     if (! widget) return false;
 
     auto propertyPath = nameValue("propertyPath");
@@ -632,9 +632,9 @@ class CQXmlQtWidgetTag : public CQXmlTag {
    CQXmlTag(xml, parent, type, options), type_(type.c_str()) {
   }
 
-  bool isWidget() const { return true; }
+  bool isWidget() const override { return true; }
 
-  QWidget *createLayoutChild(QLayout *l, CQXmlTag *) {
+  QWidget *createLayoutChild(QLayout *l, CQXmlTag *) override {
     auto text = getText();
 
     auto *w = createWidgetI(text);
@@ -671,7 +671,7 @@ class CQXmlQtWidgetTag : public CQXmlTag {
     return w;
   }
 
-  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) {
+  QWidget *createWidgetChild(QWidget *w, CQXmlTag *) override {
     auto text = getText();
 
     auto *w1 = createWidgetI(text);
@@ -917,7 +917,7 @@ class CQXmlLayoutTagFactory : public CQXmlTagFactory {
   }
 
   CQXmlTag *createTag(const CXML *tag, CXMLTag *parent, const std::string &name,
-                      CXMLTag::OptionArray &options) {
+                      CXMLTag::OptionArray &options) override {
     return new CQXmlLayoutTag(tag, parent, type_, name, options);
   }
 
@@ -932,7 +932,7 @@ class CQXmlStyleTagFactory : public CQXmlTagFactory {
   }
 
   CQXmlTag *createTag(const CXML *tag, CXMLTag *parent, const std::string &name,
-                      CXMLTag::OptionArray &options) {
+                      CXMLTag::OptionArray &options) override {
     return new CQXmlStyleTag(tag, parent, style_, name, options);
   }
 

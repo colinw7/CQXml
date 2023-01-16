@@ -40,7 +40,7 @@ class CQXmlWidgetFactoryT : public CQXmlWidgetFactory {
  public:
   CQXmlWidgetFactoryT() { }
 
-  QWidget *createWidget(const QStringList &) {
+  QWidget *createWidget(const QStringList &) override {
     return new T;
   }
 };
@@ -68,7 +68,7 @@ class CQXmlTagFactoryT : public CQXmlTagFactory {
   CQXmlTagFactoryT() { }
 
   CQXmlTag *createTag(const CXML *xml, CXMLTag *parent, const std::string &name,
-                      CXMLTag::OptionArray &options) {
+                      CXMLTag::OptionArray &options) override {
     return new T(xml, parent, name, options);
   }
 };
