@@ -30,7 +30,11 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPlainTextEdit>
+
+#ifdef PRINT_SUPPORT
 #include <QPrintDialog>
+#endif
+
 #include <QProgressBar>
 #include <QProgressDialog>
 #include <QPushButton>
@@ -49,7 +53,11 @@
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QUndoView>
+
+#ifdef WEBVIEW_SUPPORT
 #include <QWebView>
+#endif
+
 #include <QWizard>
 
 #include <QHBoxLayout>
@@ -114,7 +122,9 @@ namespace CQXmlUtil {
     if (qobject_cast<QColorDialog *>(w) ||
         qobject_cast<QFileDialog *>(w) ||
         qobject_cast<QFontDialog *>(w) ||
+#ifdef PRINT_SUPPORT
         qobject_cast<QPrintDialog *>(w) ||
+#endif
         qobject_cast<QProgressDialog *>(w) ||
         qobject_cast<QMainWindow *>(w) ||
         qobject_cast<QMenu *>(w))
@@ -201,7 +211,7 @@ class CQXmlTag : public CXMLTag {
   }
 
   QString nameValue(const QString &name) const {
-    NameValues::const_iterator p = nameValues_.find(name);
+    auto p = nameValues_.find(name);
 
     if (p != nameValues_.end())
       return (*p).second;
@@ -218,7 +228,7 @@ class CQXmlTag : public CXMLTag {
   }
 
  protected:
-  typedef std::map<QString, QString> NameValues;
+  using NameValues = std::map<QString, QString>;
 
   NameValues nameValues_;
 };
@@ -306,11 +316,11 @@ class CQXmlLayoutTag : public CQXmlTag {
   }
 
  private:
-  typedef std::pair<int, int>      IntIntPair;
-  typedef std::vector<IntIntPair> IntIntPairArray;
+  using IntIntPair      = std::pair<int, int>;
+  using IntIntPairArray = std::vector<IntIntPair>;
 
   CQXmlUtil::LayoutType type_;
-  QLayout*              layout_;
+  QLayout*              layout_ { nullptr };
   IntIntPairArray       columnStretches_;
   IntIntPairArray       rowStretches_;
 };
@@ -325,8 +335,8 @@ class CQXmlRootTag : public CQXmlTag {
     factory->setRoot(this);
 
     for (auto option : options) {
-      const std::string &name  = option->getName();
-      const std::string &value = option->getValue();
+      const auto &name  = option->getName();
+      const auto &value = option->getValue();
 
       if (name == "layoutType")
         type_ = stringToLayoutType(value.c_str());
@@ -351,8 +361,8 @@ class CQXmlRootTag : public CQXmlTag {
   }
 
  private:
-  CQXml                 *xml_;
-  CQXmlUtil::LayoutType  type_;
+  CQXml*                xml_ { nullptr };
+  CQXmlUtil::LayoutType type_;
 };
 
 class CQXmlStyleTag : public CQXmlTag {
@@ -901,6 +911,11 @@ class CQXmlQtWidgetTag : public CQXmlTag {
 
       w->setMinimumHeight(h1); w->setMaximumHeight(h1);
     }
+    if (hasNameValue("onClicked")) {
+      auto value = nameValue("onClicked");
+      w->setProperty("onValue", value);
+      QObject::connect(w, SIGNAL(clicked()), xml, SLOT(onSlot()));
+    }
 
     return w;
   }
@@ -979,7 +994,9 @@ CQXml() :
   CQXmlAddWidgetFactoryT(this, QMenuBar);
   CQXmlAddWidgetFactoryT(this, QMessageBox);
   CQXmlAddWidgetFactoryT(this, QPlainTextEdit);
+#ifdef PRINT_SUPPORT
   CQXmlAddWidgetFactoryT(this, QPrintDialog);
+#endif
   CQXmlAddWidgetFactoryT(this, QProgressBar);
   CQXmlAddWidgetFactoryT(this, QProgressDialog);
   CQXmlAddWidgetFactoryT(this, QPushButton);
@@ -1003,7 +1020,9 @@ CQXml() :
   CQXmlAddWidgetFactoryT(this, QTreeWidget);
   CQXmlAddWidgetFactoryT(this, QUndoView);
   CQXmlAddWidgetFactoryT(this, QWidget);
+#ifdef WEBVIEW_SUPPORT
   CQXmlAddWidgetFactoryT(this, QWebView);
+#endif
   CQXmlAddWidgetFactoryT(this, QWizard);
   CQXmlAddWidgetFactoryT(this, QWizardPage);
 
@@ -1063,7 +1082,7 @@ void
 CQXml::
 removeWidgetFactory(const QString &name)
 {
-  WidgetFactories::iterator p = widgetFactories_.find(name);
+  auto p = widgetFactories_.find(name);
   assert(p != widgetFactories_.end());
 
   widgetFactories_.erase(p);
@@ -1073,7 +1092,7 @@ CQXmlWidgetFactory *
 CQXml::
 getWidgetFactory(const QString &name) const
 {
-  WidgetFactories::const_iterator p = widgetFactories_.find(name);
+  auto p = widgetFactories_.find(name);
   assert(p != widgetFactories_.end());
 
   return (*p).second;
@@ -1102,7 +1121,7 @@ void
 CQXml::
 removeTagFactory(const QString &name)
 {
-  TagFactories::iterator p = tagFactories_.find(name);
+  auto p = tagFactories_.find(name);
   assert(p != tagFactories_.end());
 
   tagFactories_.erase(p);
@@ -1112,7 +1131,7 @@ CQXmlTagFactory *
 CQXml::
 getTagFactory(const QString &name) const
 {
-  TagFactories::const_iterator p = tagFactories_.find(name);
+  auto p = tagFactories_.find(name);
   assert(p != tagFactories_.end());
 
   return (*p).second;
@@ -1120,7 +1139,7 @@ getTagFactory(const QString &name) const
 
 //------
 
-void
+bool
 CQXml::
 createWidgetsFromString(QWidget *parent, const std::string &str)
 {
@@ -1129,12 +1148,14 @@ createWidgetsFromString(QWidget *parent, const std::string &str)
   CXMLTag *tag;
 
   if (! xml_->readString(str, &tag))
-    return;
+    return false;
 
   factory_->createWidgets(parent);
+
+  return true;
 }
 
-void
+bool
 CQXml::
 createWidgetsFromFile(QWidget *parent, const std::string &filename)
 {
@@ -1143,9 +1164,11 @@ createWidgetsFromFile(QWidget *parent, const std::string &filename)
   CXMLTag *tag;
 
   if (! xml_->read(filename, &tag))
-    return;
+    return false;
 
   factory_->createWidgets(parent);
+
+  return true;
 }
 
 void
@@ -1159,7 +1182,7 @@ QLayout *
 CQXml::
 getLayout(const QString &name) const
 {
-  LayoutMap::const_iterator p = layouts_.find(name);
+  auto p = layouts_.find(name);
 
   if (p == layouts_.end())
     return nullptr;
@@ -1178,7 +1201,7 @@ QWidget *
 CQXml::
 getWidget(const QString &name) const
 {
-  WidgetMap::const_iterator p = widgets_.find(name);
+  auto p = widgets_.find(name);
 
   if (p == widgets_.end())
     return nullptr;
@@ -1197,12 +1220,28 @@ QAction *
 CQXml::
 getAction(const QString &name) const
 {
-  ActionMap::const_iterator p = actions_.find(name);
+  auto p = actions_.find(name);
 
   if (p == actions_.end())
     return nullptr;
 
   return (*p).second;
+}
+
+void
+CQXml::
+onSlot()
+{
+  auto value = sender()->property("onValue").toString();
+
+  execSlot(value);
+}
+
+void
+CQXml::
+execSlot(const QString &str)
+{
+  std::cout << str.toStdString() << "\n";
 }
 
 //-------
@@ -1211,7 +1250,7 @@ CXMLTag *
 CQXmlFactory::
 createTag(const CXML *xml, CXMLTag *parent, const std::string &name, CXMLTag::OptionArray &options)
 {
-  typedef std::map<QString, QString> NameValues;
+  using NameValues = std::map<QString, QString>;
 
   NameValues nameValues;
 

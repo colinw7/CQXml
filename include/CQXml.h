@@ -20,7 +20,7 @@ class QAction;
 
 //----
 
-typedef std::map<QString, QString> CQXmlNameValues;
+using CQXmlNameValues = std::map<QString, QString>;
 
 //----
 
@@ -78,10 +78,13 @@ class CQXmlTagFactoryT : public CQXmlTagFactory {
 
 //----
 
-class CQXml {
+class CQXml : public QObject {
+  Q_OBJECT
+
  public:
   CQXml();
- ~CQXml();
+
+  virtual ~CQXml();
 
   CXML *getXml() const { return xml_; }
 
@@ -99,8 +102,8 @@ class CQXml {
   void removeTagFactory(const QString &name);
   CQXmlTagFactory *getTagFactory(const QString &name) const;
 
-  void createWidgetsFromString(QWidget *parent, const std::string &str);
-  void createWidgetsFromFile  (QWidget *parent, const std::string &filename);
+  bool createWidgetsFromString(QWidget *parent, const std::string &str);
+  bool createWidgetsFromFile  (QWidget *parent, const std::string &filename);
 
   void addLayout(const QString &name, QLayout *l);
   QLayout *getLayout(const QString &name) const;
@@ -120,6 +123,11 @@ class CQXml {
 
   void addAction(const QString &name, QAction *action);
   QAction *getAction(const QString &name) const;
+
+  virtual void execSlot(const QString &str);
+
+ private Q_SLOTS:
+  void onSlot();
 
  private:
   using LayoutMap       = std::map<QString, QLayout *>;

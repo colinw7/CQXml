@@ -9,4 +9,5 @@
 <QComboItem text="Two" icon="two.xpm"/>
 <QComboItem text="Three" icon="three.xpm"/>
 </QComboBox>
+<QLayoutItem stretch="1"/>
 </qxml>

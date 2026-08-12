@@ -2,9 +2,11 @@
 #include <CQXml.h>
 #include <CQStyleControl.h>
 #include <CQStyleDivider.h>
-#include <QApplication>
+#include <CQApp.h>
+#include <CFile.h>
 #include <QVBoxLayout>
 #include <QLineEdit>
+#include <iostream>
 
 static const char *xmlStr =
 "<qxml>\n"
@@ -31,13 +33,15 @@ static const char *xmlStr =
 int
 main(int argc, char **argv)
 {
-  QApplication app(argc, argv);
+  CQApp app(argc, argv);
 
   CQXmlTest *test = new CQXmlTest;
 
   if (argc > 1) {
-    for (int i = 1; i < argc; ++i)
-      test->loadFile(argv[i]);
+    for (int i = 1; i < argc; ++i) {
+      if (! test->loadFile(argv[i]))
+        std::cerr << std::string("Failed to load '") + argv[i] + "'\n";
+    }
   }
   else
     test->loadStr(xmlStr);
@@ -57,11 +61,14 @@ CQXmlTest()
   xml_ = new CQXml;
 }
 
-void
+bool
 CQXmlTest::
 loadFile(const char *filename)
 {
-  xml_->createWidgetsFromFile(this, filename);
+  if (! CFile::exists(filename))
+    return false;
+
+  return xml_->createWidgetsFromFile(this, filename);
 }
 
 void
