@@ -124,7 +124,13 @@ class CQXml : public QObject {
   void addAction(const QString &name, QAction *action);
   QAction *getAction(const QString &name) const;
 
-  virtual void execSlot(const QString &str);
+  virtual void execSlot(const QString &value, const QString &data);
+
+  QVariant getExecData(const QString &name) const;
+  void setExecData(const QString &name, const QVariant &value);
+
+  bool getWidgetData(QWidget *w, const QString &name, QVariant &value) const;
+  bool setWidgetData(QWidget *w, const QString &name, const QVariant &value);
 
  private Q_SLOTS:
   void onSlot();
@@ -135,6 +141,7 @@ class CQXml : public QObject {
   using ActionMap       = std::map<QString, QAction *>;
   using WidgetFactories = std::map<QString, CQXmlWidgetFactory *>;
   using TagFactories    = std::map<QString, CQXmlTagFactory *>;
+  using ExecData        = std::map<QString, QVariant>;
 
   CXML*           xml_     { nullptr };
   QWidget*        parent_  { nullptr };
@@ -144,6 +151,7 @@ class CQXml : public QObject {
   ActionMap       actions_;
   WidgetFactories widgetFactories_;
   TagFactories    tagFactories_;
+  ExecData        execData_;
 };
 
 #endif

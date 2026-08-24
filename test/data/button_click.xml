@@ -1,0 +1,10 @@
+<qxml windowTitle="Buttons">
+<QPushButton text="Button 1" onClicked="1"/>
+<QPushButton icon="one.xpm" onClicked="2"/>
+<QLayoutItem spacing="8"/>
+<QRadioButton text="Radio" onClicked="3"/>
+<QRadioButton icon="two.xpm" onClicked="4"/>
+<QLayoutItem spacing="8"/>
+<QToolButton text="Tool Button" onClicked="5"/>
+<QToolButton icon="three.xpm" onClicked="6"/>
+</qxml>

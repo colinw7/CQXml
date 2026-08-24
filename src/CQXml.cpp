@@ -912,9 +912,18 @@ class CQXmlQtWidgetTag : public CQXmlTag {
       w->setMinimumHeight(h1); w->setMaximumHeight(h1);
     }
     if (hasNameValue("onClicked")) {
-      auto value = nameValue("onClicked");
+      auto value = nameValue("onClicked"); // exec name
+      if (hasNameValue("onData"))
+        w->setProperty("onData", nameValue("onData"));
       w->setProperty("onValue", value);
       QObject::connect(w, SIGNAL(clicked()), xml, SLOT(onSlot()));
+    }
+    if (hasNameValue("onReturnPressed")) {
+      auto value = nameValue("onReturnPressed"); // exec name
+      w->setProperty("onValue", value);
+      if (hasNameValue("onData"))
+        w->setProperty("onData", nameValue("onData"));
+      QObject::connect(w, SIGNAL(returnPressed()), xml, SLOT(onSlot()));
     }
 
     return w;
@@ -1232,16 +1241,72 @@ void
 CQXml::
 onSlot()
 {
-  auto value = sender()->property("onValue").toString();
+  auto *w = qobject_cast<QWidget *>(sender());
+  assert(w);
 
-  execSlot(value);
+  if (qobject_cast<QLineEdit *>(w)) {
+    auto text = qobject_cast<QLineEdit *>(w)->text();
+
+    setExecData("text", text);
+  }
+
+  auto value = w->property("onValue").toString();
+  auto data  = w->property("onData").toString();
+
+  execSlot(value, data);
 }
 
 void
 CQXml::
-execSlot(const QString &str)
+execSlot(const QString &value, const QString &data)
 {
-  std::cout << str.toStdString() << "\n";
+  std::cout << value.toStdString() << " " << data.toStdString() << "\n";
+}
+
+QVariant
+CQXml::
+getExecData(const QString &name) const
+{
+  auto pd = execData_.find(name);
+  if (pd == execData_.end())
+    return QVariant();
+
+  return (*pd).second;
+}
+
+void
+CQXml::
+setExecData(const QString &name, const QVariant &value)
+{
+  execData_[name] = value;
+}
+
+bool
+CQXml::
+getWidgetData(QWidget *w, const QString &name, QVariant &value) const
+{
+  if (qobject_cast<QLineEdit *>(w)) {
+    if (name == "text") {
+      value = qobject_cast<QLineEdit *>(w)->text();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+CQXml::
+setWidgetData(QWidget *w, const QString &name, const QVariant &value)
+{
+  if (qobject_cast<QLineEdit *>(w)) {
+    if (name == "text") {
+      qobject_cast<QLineEdit *>(w)->setText(value.toString());
+      return true;
+    }
+  }
+
+  return false;;
 }
 
 //-------
