@@ -21,6 +21,10 @@ OBJECTS_DIR = .
 INCLUDEPATH += \
 ../include \
 ../../CQStyleWidget/include \
+../../CQUtil/include \
+../../CXML/include \
+../../CFile/include \
+../../CUtil/include \
 .
 
 unix:LIBS += \
