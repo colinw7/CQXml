@@ -26,6 +26,7 @@ INCLUDEPATH += \
 ../include \
 ../../CQStyleWidget/include \
 ../../CQPropertyTree/include \
+../../CQUtil/include \
 ../../CXML/include \
 ../../CStrUtil/include \
 ../../CUtil/include \

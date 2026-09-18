@@ -124,7 +124,9 @@ class CQXml : public QObject {
   void addAction(const QString &name, QAction *action);
   QAction *getAction(const QString &name) const;
 
-  virtual void execSlot(const QString &value, const QString &data);
+  virtual void createNotify(QWidget *) { }
+
+  virtual void execSlot(const QString &value, const QStringList &args);
 
   QVariant getExecData(const QString &name) const;
   void setExecData(const QString &name, const QVariant &value);
@@ -134,6 +136,7 @@ class CQXml : public QObject {
 
  private Q_SLOTS:
   void onSlot();
+  void onSlot(int);
 
  private:
   using LayoutMap       = std::map<QString, QLayout *>;

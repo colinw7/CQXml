@@ -1,10 +1,13 @@
 #include <CQXml.h>
+
 #include <CXML.h>
 #include <CXMLToken.h>
-#include <CStrUtil.h>
 
 #include <CQStyleWidget.h>
 #include <CQPropertyTree.h>
+#include <CQUtil.h>
+
+#include <CStrUtil.h>
 
 #include <QCalendarWidget>
 #include <QCheckBox>
@@ -210,6 +213,21 @@ class CQXmlTag : public CXMLTag {
     return (nameValues_.find(name) != nameValues_.end());
   }
 
+  bool hasNameValue(const QString &name, QString &value) const {
+    auto p = nameValues_.find(name);
+    if (p == nameValues_.end()) return false;
+    value = (*p).second;
+    return true;
+  }
+
+  bool hasNameValue(const QString &name, int &value) const {
+    auto p = nameValues_.find(name);
+    if (p == nameValues_.end()) return false;
+    bool ok;
+    value = (*p).second.toInt(&ok);
+    return ok;
+  }
+
   QString nameValue(const QString &name) const {
     auto p = nameValues_.find(name);
 
@@ -249,8 +267,8 @@ class CQXmlLayoutTag : public CQXmlTag {
 
     int margin = 2, spacing = 2;
 
-    if (hasNameValue("margin" )) margin  = nameValue("margin" ).toInt();
-    if (hasNameValue("spacing")) spacing = nameValue("spacing").toInt();
+    (void) hasNameValue("margin" , margin );
+    (void) hasNameValue("spacing", spacing);
 
     layout_->setMargin(margin); layout_->setSpacing(spacing);
 
@@ -588,15 +606,15 @@ class CQXmlConnectTag : public CQXmlTag {
     if (hasNameValue("dest"))
       dest = getXml()->getWidget(nameValue("dest"));
 
-    auto sourceSignal = "2" + nameValue("sourceSignal");
+    auto sourceSignal = CQUtil::encodeSignalName(nameValue("sourceSignal"));
 
     if (hasNameValue("destSignal")) {
-      auto destSignal = "2" + nameValue("destSignal");
+      auto destSignal = CQUtil::encodeSignalName(nameValue("destSignal"));
 
       QObject::connect(source, sourceSignal.toLatin1(), dest, destSignal.toLatin1());
     }
     else {
-      auto destSlot = "1" + nameValue("destSlot");
+      auto destSlot = CQUtil::encodeSlotName(nameValue("destSlot"));
 
       QObject::connect(source, sourceSignal.toLatin1(), dest, destSlot.toLatin1());
     }
@@ -778,6 +796,7 @@ class CQXmlQtWidgetTag : public CQXmlTag {
       getXml()->addWidget(nameValue("name"), w);
     }
 
+    // set text
     if      (qobject_cast<QLabel *>(w))
       qobject_cast<QLabel *>(w)->setText(text);
     else if (qobject_cast<QAbstractButton *>(w))
@@ -791,34 +810,42 @@ class CQXmlQtWidgetTag : public CQXmlTag {
 
     const auto *meta = w->metaObject();
 
+    bool hasSignal = false;
+
     if (meta) {
       for (auto nameValue : nameValues_) {
-        int propIndex = meta->indexOfProperty(nameValue.first.toLatin1());
+        const auto &name  = nameValue.first;
+        const auto &value = nameValue.second;
+
+        if (name.left(2) == "on")
+          hasSignal = true;
+
+        int propIndex = meta->indexOfProperty(name.toLatin1());
         if (propIndex < 0) continue;
 
         auto mP = meta->property(propIndex);
         if (! mP.isWritable()) continue;
 
         if (mP.isEnumType()) {
-          QString name(nameValue.second);
+          QString name(value);
 
           auto me = mP.enumerator();
 
           for (int i = 0; i < me.keyCount(); ++i) {
             if (me.key(i) == name)
-              (void) w->setProperty(nameValue.first.toLatin1(), me.value(i));
+              (void) w->setProperty(name.toLatin1(), me.value(i));
           }
         }
         else {
-          QVariant v(nameValue.second);
+          QVariant v(value);
 
           if      (mP.type() == QVariant::Icon) {
-            QPixmap pixmap(nameValue.second);
+            QPixmap pixmap(value);
 
             v = QIcon(pixmap);
           }
           else if (mP.type() == QVariant::Pixmap) {
-            QPixmap pixmap(nameValue.second);
+            QPixmap pixmap(value);
 
             v = pixmap;
           }
@@ -827,7 +854,7 @@ class CQXmlQtWidgetTag : public CQXmlTag {
               continue;
           }
 
-          (void) w->setProperty(nameValue.first.toLatin1(), v);
+          (void) w->setProperty(name.toLatin1(), v);
         }
       }
     }
@@ -911,19 +938,41 @@ class CQXmlQtWidgetTag : public CQXmlTag {
 
       w->setMinimumHeight(h1); w->setMaximumHeight(h1);
     }
-    if (hasNameValue("onClicked")) {
-      auto value = nameValue("onClicked"); // exec name
-      if (hasNameValue("onData"))
-        w->setProperty("onData", nameValue("onData"));
-      w->setProperty("onValue", value);
-      QObject::connect(w, SIGNAL(clicked()), xml, SLOT(onSlot()));
-    }
-    if (hasNameValue("onReturnPressed")) {
-      auto value = nameValue("onReturnPressed"); // exec name
-      w->setProperty("onValue", value);
-      if (hasNameValue("onData"))
-        w->setProperty("onData", nameValue("onData"));
-      QObject::connect(w, SIGNAL(returnPressed()), xml, SLOT(onSlot()));
+
+    if (hasSignal) {
+      auto signalNames = CQUtil::signalNames(w);
+
+      QStringList onNames;
+      for (const auto &name : signalNames) {
+        QString methodName, args;
+        if (! CQUtil::decodeSignalName(name, methodName, args))
+          std::cerr << "Invalid signal name '" << name << "'\n";
+
+        onNames.push_back("on" + methodName.left(1).toUpper() + methodName.mid(1));
+      }
+
+      QString onValue, onData;
+
+      for (int i = 0; i < onNames.size(); ++i) {
+        if (hasNameValue(onNames[i], onValue)) {
+          w->setProperty("onValue", onValue);
+
+          if (hasNameValue("onData", onData))
+            w->setProperty("onData", onData);
+
+          QString methodName, args;
+          if (! CQUtil::decodeSignalName(signalNames[i], methodName, args))
+            std::cerr << "Invalid signal name '" << signalNames[i] << "'\n";
+
+          auto signalName = CQUtil::encodeSignalName(signalNames[i]);
+          auto slotName   = CQUtil::encodeSlotName("onSlot(" + args + ")");
+
+          QObject::connect(w, signalName.toLatin1().constData(),
+                           xml, slotName.toLatin1().constData());
+
+          break;
+        }
+      }
     }
 
     return w;
@@ -967,8 +1016,7 @@ class CQXmlStyleTagFactory : public CQXmlTagFactory {
 //------
 
 CQXml::
-CQXml() :
- parent_(nullptr)
+CQXml()
 {
   xml_ = new CXML;
 
@@ -1066,6 +1114,8 @@ CQXml::
 ~CQXml()
 {
   delete xml_;
+
+  delete factory_;
 }
 
 //-----
@@ -1253,14 +1303,41 @@ onSlot()
   auto value = w->property("onValue").toString();
   auto data  = w->property("onData").toString();
 
-  execSlot(value, data);
+  QStringList args;
+
+  args.push_back(data);
+
+  execSlot(value, args);
 }
 
 void
 CQXml::
-execSlot(const QString &value, const QString &data)
+onSlot(int i)
 {
-  std::cout << value.toStdString() << " " << data.toStdString() << "\n";
+  auto *w = qobject_cast<QWidget *>(sender());
+  assert(w);
+
+  auto value = w->property("onValue").toString();
+  auto data  = w->property("onData").toString();
+
+  QStringList args;
+
+  args.push_back(QString::number(i));
+  args.push_back(data);
+
+  execSlot(value, args);
+}
+
+void
+CQXml::
+execSlot(const QString &value, const QStringList &args)
+{
+  std::cout << value.toStdString();
+
+  for (auto &arg : args)
+    std::cout << " " << arg.toStdString();
+
+  std::cout << "\n";
 }
 
 QVariant
@@ -1385,6 +1462,8 @@ createWidgets(CXMLTag *tag, QLayout *layout)
       else if (tag1->isWidget()) {
         auto *widget = tag1->createLayoutChild(layout, ptag);
 
+        xml_->createNotify(widget);
+
         createWidgets(tag1, widget);
       }
       else if (tag1->isExec()) {
@@ -1421,6 +1500,8 @@ createWidgets(CXMLTag *tag, QWidget *widget)
         auto *widget1 = tag1->createWidgetChild(widget, ptag);
 
         createWidgets(tag1, widget1);
+
+        xml_->createNotify(widget1);
       }
       else if (tag1->isExec()) {
         (void) tag1->exec(widget, nullptr);
