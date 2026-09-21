@@ -1291,6 +1291,27 @@ void
 CQXml::
 onSlot()
 {
+  onExec(QVariant());
+}
+
+void
+CQXml::
+onSlot(bool b)
+{
+  onExec(b);
+}
+
+void
+CQXml::
+onSlot(int i)
+{
+  onExec(i);
+}
+
+void
+CQXml::
+onExec(const QVariant &var)
+{
   auto *w = qobject_cast<QWidget *>(sender());
   assert(w);
 
@@ -1307,23 +1328,10 @@ onSlot()
 
   args.push_back(data);
 
-  execSlot(value, args);
-}
+  auto varArg = var.toString();
 
-void
-CQXml::
-onSlot(int i)
-{
-  auto *w = qobject_cast<QWidget *>(sender());
-  assert(w);
-
-  auto value = w->property("onValue").toString();
-  auto data  = w->property("onData").toString();
-
-  QStringList args;
-
-  args.push_back(QString::number(i));
-  args.push_back(data);
+  if (varArg != "")
+    args.push_back(varArg);
 
   execSlot(value, args);
 }

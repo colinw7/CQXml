@@ -126,6 +126,8 @@ class CQXml : public QObject {
 
   virtual void createNotify(QWidget *) { }
 
+  void onExec(const QVariant &var);
+
   virtual void execSlot(const QString &value, const QStringList &args);
 
   QVariant getExecData(const QString &name) const;
@@ -136,6 +138,7 @@ class CQXml : public QObject {
 
  private Q_SLOTS:
   void onSlot();
+  void onSlot(bool);
   void onSlot(int);
 
  private:
