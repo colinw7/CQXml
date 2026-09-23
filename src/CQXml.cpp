@@ -1326,12 +1326,13 @@ onExec(const QVariant &var)
 
   QStringList args;
 
-  args.push_back(data);
-
   auto varArg = var.toString();
 
   if (varArg != "")
     args.push_back(varArg);
+
+  if (data != "")
+    args.push_back(data);
 
   execSlot(value, args);
 }
